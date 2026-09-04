@@ -682,14 +682,14 @@
           </div>
         </div>
 
-        <!-- Acceso Remoto Cloudflare -->
-        <div class="stat-box" id="cfBox" style="grid-column: span 2; display:none">
+        <!-- Acceso Remoto -->
+        <div class="stat-box" id="cfBox" style="grid-column: span 2;">
           <div class="stat-label">
             <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            <span>Acceso Remoto (Cloudflare)</span>
+            <span>Acceso Remoto (Tailscale Funnel)</span>
           </div>
           <div class="stat-val" style="font-size:0.82rem; gap:8px">
-            <a id="cfUrl" href="#" target="_blank" style="color:#38bdf8;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1"></a>
+            <a id="cfUrl" href="https://nejca-iot.tail4284c3.ts.net" target="_blank" style="color:#38bdf8;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">https://nejca-iot.tail4284c3.ts.net</a>
             <button onclick="copyCf()" class="sec sm" style="padding:4px 8px; flex-shrink:0" title="Copiar URL"><svg class="icon" style="width:13px;height:13px" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v3"/></svg> Copiar</button>
           </div>
         </div>
@@ -996,13 +996,10 @@
 
         const cfBox = document.getElementById('cfBox');
         const cfA = document.getElementById('cfUrl');
-        if (d.cloudflare_url) {
-          cfA.textContent = d.cloudflare_url;
-          cfA.href = d.cloudflare_url;
-          cfBox.style.display = 'flex';
-        } else {
-          cfBox.style.display = 'none';
-        }
+        const remoteUrl = d.remote_url || d.cloudflare_url || 'https://nejca-iot.tail4284c3.ts.net';
+        cfA.textContent = remoteUrl;
+        cfA.href = remoteUrl;
+        cfBox.style.display = 'flex';
 
       } catch (e) {
         showToast('Error al cargar estado del sistema: ' + e.message, true);
@@ -1151,7 +1148,7 @@
         showToast(`Resultado: ${d.resultado || 'Conexión enviada'}`, false, true);
         setTimeout(cargarEstado, 2000);
       } catch (e) {
-        showToast(`Enviada solicitud a "${ssid}". Si cambió la IP, reconéctese por Cloudflare/IP nueva.`, true);
+        showToast(`Enviada solicitud a "${ssid}". Si cambió la IP, reconéctese por acceso remoto o IP nueva.`, true);
       }
     }
 

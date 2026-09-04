@@ -16,7 +16,7 @@ Materia: Programación en C/C++ — Tecnicatura IoT CEAER. Clases 1-3 ya dadas, 
   * `clase4_bloque3.html`: `leer_todos/calibrar_todos/alertar_todos/buscar_sensor` delegando en `leer_sensor(&s)` + menú no bloqueante `millis()/digitalRead D3/D4` + sistema completo `loop()` con CSV a dashboard.
   * `clase4_completa.html` regenerada.
 
-## Pi Zero (nico@192.168.0.43:8000, cloudflared)
+## Pi Zero (nico@192.168.0.43:8000, Tailscale Funnel)
 
 * Servidor original `servidor_datos.py` en `:8000` leía CSV `temp,hum` → `/datos` + `panel.html` + `dashboard.html` (Clase 3). **No tocar** archivos de Clase 3, solo agregar nuevo HTML para Clase 4.
 

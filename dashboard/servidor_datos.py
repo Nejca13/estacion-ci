@@ -96,15 +96,11 @@ def leer_serial():
 def correr(cmd):
     try: r=subprocess.run(cmd,capture_output=True,text=True,timeout=20); return r.stdout.strip()
     except Exception as e: return "error: "+str(e)
-def get_cloudflare_url():
-    for pat in ["/tmp/cf.log","/var/log/cloudflared.log","/tmp/cloudflare.log","/tmp/cf8000.log"]:
-        if os.path.exists(pat):
-            try:
-                with open(pat,encoding="utf-8",errors="ignore") as f: txt=f.read()
-                m=re.findall(r"https://[a-z0-9-]+\.trycloudflare\.com",txt)
-                if m: return m[-1]
-            except: pass
-    return ""
+REMOTE_URL = "https://nejca-iot.tail4284c3.ts.net"
+
+def get_remote_url():
+    return REMOTE_URL
+
 def estado_red():
     info={}
     ssid=correr(["nmcli","-t","-f","active,ssid","dev","wifi"]); info["ssid_activo"]=""
@@ -126,7 +122,9 @@ def estado_red():
                 with open(tp) as f: raw=f.read().strip()
                 if raw.isdigit(): info["temp_cpu"]=round(int(raw)/1000,1); break
             except: pass
-    info["cloudflare_url"]=get_cloudflare_url(); return info
+    info["remote_url"]=REMOTE_URL
+    info["cloudflare_url"]=REMOTE_URL
+    return info
 def escanear():
     try: correr(["sudo","nmcli","dev","wifi","rescan"]); time.sleep(4)
     except: pass
@@ -212,7 +210,7 @@ class Handler(BaseHTTPRequestHandler):
             if not cmd: self._json({"error":"falta cmd"},400); return
             res=enviar_a_arduino(cmd); self._json({"result":res,"estado":estado["actuadores"],"log":estado["log_act"][-5:]})
         elif ruta=="/api/deploy":
-            # Deploy por HTTP usando mismo túnel cloudflare - verifica token
+            # Deploy por HTTP usando túnel Tailscale Funnel / LAN - verifica token
             token_ok=self._auth_deploy()
             # también acepta token en JSON body
             if not token_ok and body.get("token"):

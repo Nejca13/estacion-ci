@@ -31,4 +31,4 @@ sshpass -p "$PI_PASS" ssh -o StrictHostKeyChecking=no "$PI_USER@$PI_HOST" bash <
   curl -s http://127.0.0.1:8000/clase4 | grep -o '<title>.*</title>' | head -1
 EOS
 
-echo "✓ Deploy OK. Local: http://$PI_HOST:8000/ y /clase4 | Túnel: ver /tmp/cf.log en Pi"
+echo "✓ Deploy OK. Local: http://$PI_HOST:8000/ y /clase4 | Acceso remoto: https://nejca-iot.tail4284c3.ts.net"
