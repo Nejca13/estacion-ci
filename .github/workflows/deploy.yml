@@ -11,32 +11,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy via HTTP tunnel
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+      - name: Deploy via Tailscale (tailnet)
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
-          PI_URL: ${{ secrets.PI_URL }}
         run: |
-          if [ -z "$PI_URL" ] || [ -z "$DEPLOY_TOKEN" ]; then
-            echo "Faltan secrets PI_URL y DEPLOY_TOKEN"
-            exit 1
-          fi
-          echo "Desplegando a $PI_URL/api/deploy"
-          curl -s -X POST "$PI_URL/api/deploy" \
+          PI_TAILNET="http://100.121.34.122:8000"
+          echo "Desplegando a $PI_TAILNET/api/deploy"
+          curl -s -X POST "$PI_TAILNET/api/deploy" \
             -H "Authorization: Bearer $DEPLOY_TOKEN" \
             -H "Content-Type: application/json" \
             -d "{\"token\":\"$DEPLOY_TOKEN\"}" | tee /tmp/deploy.json
           cat /tmp/deploy.json
-          if ! grep -q "deploy iniciado" /tmp/deploy.json; then
-            echo "Deploy falló"
-            exit 1
-          fi
+          grep -q "deploy iniciado" /tmp/deploy.json || exit 1
           echo "Esperando reinicio..."
-          for i in 1 2 3 4 5; do sleep 5; echo "Intento $i/5"; curl -s "$PI_URL/" | grep -q "CEAER" && echo "OK index" && break; done
-          curl -s "$PI_URL/" | grep -q "CEAER" && echo "OK index final" || exit 1
-          for i in 1 2 3; do curl -s "$PI_URL/clase4" | grep -q "Clase 4" && echo "OK clase4" && break; sleep 3; done
-          curl -s "$PI_URL/clase4" | grep -q "Clase 4" && echo "OK clase4 final" || exit 1
+          for i in 1 2 3 4 5; do sleep 5; echo "Intento $i/5"; curl -s "$PI_TAILNET/" | grep -q "CEAER" && echo "OK index" && break; done
+          curl -s "$PI_TAILNET/" | grep -q "CEAER" && echo "OK index final" || exit 1
+          for i in 1 2 3; do curl -s "$PI_TAILNET/clase4" | grep -q "Clase 4" && echo "OK clase4" && break; sleep 3; done
+          curl -s "$PI_TAILNET/clase4" | grep -q "Clase 4" && echo "OK clase4 final" || exit 1
       - name: Lint
         run: |
           python3 -m py_compile dashboard/servidor_datos.py
-          echo "HTML lines:"; wc -l dashboard/*.html
+          wc -l dashboard/*.html
           if grep -P -q '[\x{1F300}-\x{1FAFF}]' dashboard/dashboard_clase4.html; then echo "ERROR emojis"; exit 1; fi
