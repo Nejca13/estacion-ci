@@ -61,6 +61,29 @@
     .node-chip.active{background:rgba(56,189,248,0.18);border-color:rgba(56,189,248,0.45);color:var(--pri);box-shadow:0 0 10px rgba(56,189,248,0.15)}
     .node-chip.off{opacity:.45}
     .node-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    /* Actuadores - Control desde Dashboard */
+    .actuadores{background:var(--sur);border:1px solid var(--b);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 24px rgba(0,0,0,0.25)}
+    .act-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+    .act-card{background:rgba(26,35,52,0.7);border:1px solid var(--b);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;transition:border-color .2s ease,box-shadow .2s ease;backdrop-filter:blur(8px)}
+    .act-card:hover{border-color:rgba(56,189,248,0.3);box-shadow:0 6px 20px rgba(0,0,0,0.3)}
+    .act-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+    .act-card-title{display:inline-flex;align-items:center;gap:8px;font-size:.95rem;font-weight:700;color:#f8fafc}
+    .act-badge{font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;padding:2px 10px;border-radius:999px;background:rgba(255,255,255,0.06);border:1px solid var(--b);color:var(--muted);transition:all .2s ease}
+    .act-badge.active{background:rgba(16,185,129,0.18);border-color:rgba(16,185,129,0.45);color:#34d399;box-shadow:0 0 10px rgba(16,185,129,0.2)}
+    .act-control-row{display:flex;justify-content:space-between;align-items:center;background:rgba(15,23,42,0.55);border:1px solid rgba(255,255,255,0.04);border-radius:10px;padding:9px 14px}
+    .sw{width:50px;height:26px;background:rgba(255,255,255,0.12);border-radius:999px;position:relative;cursor:pointer;transition:all .25s ease;border:1px solid var(--b);flex-shrink:0}
+    .sw.on{background:rgba(16,185,129,0.45);border-color:rgba(16,185,129,0.7);box-shadow:0 0 12px rgba(16,185,129,0.3)}
+    .sw::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;background:#f8fafc;border-radius:50%;transition:transform .22s cubic-bezier(0.4, 0, 0.2, 1);box-shadow:0 2px 4px rgba(0,0,0,0.4)}
+    .sw.on::after{transform:translateX(24px);background:#fff}
+    .btn{padding:8px 14px;border-radius:9px;border:1px solid var(--b);background:rgba(255,255,255,0.06);color:#f1f5f9;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .15s ease;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+    .btn:hover{background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.2);color:#fff}
+    .btn:active{transform:scale(0.97)}
+    .btn.pri{background:linear-gradient(135deg,rgba(56,189,248,0.25),rgba(14,165,233,0.35));border-color:rgba(56,189,248,0.4);color:var(--pri)}
+    .btn.pri:hover{background:linear-gradient(135deg,rgba(56,189,248,0.35),rgba(14,165,233,0.5));border-color:rgba(56,189,248,0.6);color:#fff;box-shadow:0 0 14px rgba(56,189,248,0.25)}
+    .act-slider{flex:1;max-width:130px;height:6px;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,0.15);border-radius:999px;outline:none;cursor:pointer}
+    .act-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--pri);cursor:pointer;box-shadow:0 0 8px rgba(56,189,248,0.5);transition:transform .15s ease}
+    .act-slider::-webkit-slider-thumb:hover{transform:scale(1.15)}
+    .act-slider::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--pri);border:none;cursor:pointer;box-shadow:0 0 8px rgba(56,189,248,0.5)}
   </style>
 </head>
 <body>
@@ -176,26 +199,75 @@
 </div>
 
 <div class="actuadores">
-  <div style="display:flex;justify-content:space-between;align-items:center"><h3>Actuadores – control desde dashboard</h3><span style="font-size:.8rem;color:var(--muted)">POST /api/actuador → Arduino (via Pi)</span></div>
-  <p style="font-size:.85rem;color:var(--muted);margin-top:6px">En Clase 4 pasamos <code>Sensor*</code> por referencia para <b>modificar</b> el estado del actuador. Estos botones envían <code>LED_ON/OFF</code>, <code>RELAY_ON/OFF</code>, <code>FAN_0..255</code> por Serial.</p>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--pri)" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      <h3 style="margin:0;font-size:1.1rem">Actuadores – Control desde Dashboard</h3>
+    </div>
+    <span class="tag" style="font-family:'JetBrains Mono',monospace;font-size:.76rem;color:var(--muted)">POST /api/clase4/actuador → Serial 9600</span>
+  </div>
+  <p style="font-size:.85rem;color:var(--muted);margin-top:2px;line-height:1.4">
+    En Clase 4 pasamos <code>Sensor*</code> por referencia para <b>modificar</b> el estado del actuador. Estos controles envían <code>LED_ON/OFF</code>, <code>RELAY_ON/OFF</code>, <code>FAN_0..255</code> por Serial.
+  </p>
   <div class="act-grid">
     <div class="act-card">
-      <b><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V18h8v-3.3A7 7 0 0 0 12 2z"/></svg> LED Indicador (D8)</b><span style="font-size:.82rem;color:var(--muted)">Día/Noche automático o manual</span>
-      <div style="display:flex;justify-content:space-between;align-items:center"><span id="ledState">OFF</span><div id="swLed" class="sw" onclick="toggle('led')"></div></div>
-      <div style="display:flex;gap:8px"><button class="btn pri" onclick="act('LED_ON')">ON</button><button class="btn" onclick="act('LED_OFF')">OFF</button></div>
+      <div class="act-card-head">
+        <span class="act-card-title">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V18h8v-3.3A7 7 0 0 0 12 2z"/></svg>
+          LED Indicador (D8)
+        </span>
+        <span id="ledState" class="act-badge">OFF</span>
+      </div>
+      <span style="font-size:.8rem;color:var(--muted)">Día/Noche automático o manual</span>
+      <div class="act-control-row">
+        <span style="font-size:.8rem;color:var(--dim)">Interruptor</span>
+        <div id="swLed" class="sw" onclick="toggle('led')" title="Conmutar LED"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn pri" style="flex:1" onclick="act('LED_ON')">ON</button>
+        <button class="btn" style="flex:1" onclick="act('LED_OFF')">OFF</button>
+      </div>
     </div>
+
     <div class="act-card">
-      <b><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path d="M7 16a4 4 0 0 1 8 0"/><path d="M12 16v4"/><path d="M5 8h14"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/></svg> Bomba / Relay Riego (D7)</b><span style="font-size:.82rem;color:var(--muted)">Activa si agua &gt;500 o manual</span>
-      <div style="display:flex;justify-content:space-between;align-items:center"><span id="relayState">OFF</span><div id="swRelay" class="sw" onclick="toggle('relay')"></div></div>
-      <div style="display:flex;gap:8px"><button class="btn pri" onclick="act('RELAY_ON')">Riego ON</button><button class="btn" onclick="act('RELAY_OFF')">OFF</button></div>
+      <div class="act-card-head">
+        <span class="act-card-title">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16a4 4 0 0 1 8 0"/><path d="M12 16v4"/><path d="M5 8h14"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/></svg>
+          Bomba / Relay Riego (D7)
+        </span>
+        <span id="relayState" class="act-badge">OFF</span>
+      </div>
+      <span style="font-size:.8rem;color:var(--muted)">Activa si agua &gt;500 o manual</span>
+      <div class="act-control-row">
+        <span style="font-size:.8rem;color:var(--dim)">Interruptor</span>
+        <div id="swRelay" class="sw" onclick="toggle('relay')" title="Conmutar Relay"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn pri" style="flex:1" onclick="act('RELAY_ON')">Riego ON</button>
+        <button class="btn" style="flex:1" onclick="act('RELAY_OFF')">OFF</button>
+      </div>
     </div>
+
     <div class="act-card">
-      <b><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path d="M12 12a3 3 0 1 0 3-3"/><path d="M12 3a9 9 0 1 0 9 9"/></svg> Ventilador PWM (D9)</b><span style="font-size:.82rem;color:var(--muted)">Ternario de Clase 2: temp&gt;30 →255</span>
-      <div style="display:flex;justify-content:space-between;align-items:center"><span id="fanState">0/255</span><input id="fanRange" type="range" min="0" max="255" value="0" style="width:110px" oninput="fan(this.value)"></div>
-      <div style="display:flex;gap:8px"><button class="btn pri" onclick="act('FAN_AUTO')">AUTO</button><button class="btn" onclick="act('FAN_OFF')">OFF</button></div>
+      <div class="act-card-head">
+        <span class="act-card-title">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12a3 3 0 1 0 3-3"/><path d="M12 3a9 9 0 1 0 9 9"/></svg>
+          Ventilador PWM (D9)
+        </span>
+        <span id="fanState" class="act-badge">0/255</span>
+      </div>
+      <span style="font-size:.8rem;color:var(--muted)">Ternario Clase 2: temp&gt;30 → 255</span>
+      <div class="act-control-row">
+        <span style="font-size:.8rem;color:var(--dim)">Potencia PWM</span>
+        <input id="fanRange" type="range" min="0" max="255" value="0" class="act-slider" oninput="fan(this.value)">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn pri" style="flex:1" onclick="act('FAN_AUTO')">AUTO</button>
+        <button class="btn" style="flex:1" onclick="act('FAN_OFF')">OFF</button>
+      </div>
     </div>
   </div>
-  <div id="log" style="margin-top:12px;background:rgba(255,255,255,0.04);border:1px solid var(--b);border-radius:8px;padding:10px;font-family:monospace;font-size:.82rem;max-height:90px;overflow-y:auto;display:none"></div>
+  <div id="log" style="margin-top:4px;background:rgba(10,15,26,0.85);border:1px solid var(--b);border-radius:10px;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--muted);max-height:90px;overflow-y:auto;display:none"></div>
 </div>
 
 <div style="background:rgba(255,255,255,0.04);border:1px solid var(--b);border-radius:12px;padding:14px;font-size:.85rem;color:var(--muted)">
@@ -362,6 +434,30 @@ function updateUI(d){
   // tags temp/hum
   $('tTag').textContent = isNaN(t) ? '--' : (t > 30 ? 'ALERTA' : 'OK');
   $('hTag').textContent = isNaN(h) ? '--' : (h > 80 ? 'ALTA' : h < 30 ? 'SECO' : 'OK');
+
+  // actuadores sync desde backend
+  if(d.actuadores){
+    if(d.actuadores.led !== undefined){
+      actuadores.led = !!d.actuadores.led;
+      $('swLed').classList.toggle('on', actuadores.led);
+      $('ledState').textContent = actuadores.led ? 'ON' : 'OFF';
+      $('ledState').classList.toggle('active', actuadores.led);
+    }
+    if(d.actuadores.relay !== undefined){
+      actuadores.relay = !!d.actuadores.relay;
+      $('swRelay').classList.toggle('on', actuadores.relay);
+      $('relayState').textContent = actuadores.relay ? 'ON' : 'OFF';
+      $('relayState').classList.toggle('active', actuadores.relay);
+    }
+    if(d.actuadores.fan !== undefined){
+      const fVal = d.actuadores.fan;
+      $('fanState').textContent = fVal + (fVal === 'AUTO' ? '' : '/255');
+      $('fanState').classList.toggle('active', fVal !== 0 && fVal !== '0');
+      if(fVal !== 'AUTO' && document.activeElement !== $('fanRange')){
+        $('fanRange').value = fVal;
+      }
+    }
+  }
 
   // hist
   if(Array.isArray(d.historial) && d.historial.length > 0 && hist.length < 5){
@@ -754,12 +850,17 @@ async function act(cmd){
     });
     let j=await r.json();
     log('← '+(j.result||j.estado||'ok'));
-    if(cmd==='LED_ON') {actuadores.led=true; $('swLed').classList.add('on'); $('ledState').textContent='ON';}
-    if(cmd==='LED_OFF') {actuadores.led=false; $('swLed').classList.remove('on'); $('ledState').textContent='OFF';}
-    if(cmd==='RELAY_ON') {actuadores.relay=true; $('swRelay').classList.add('on'); $('relayState').textContent='ON';}
-    if(cmd==='RELAY_OFF') {actuadores.relay=false; $('swRelay').classList.remove('on'); $('relayState').textContent='OFF';}
-    if(cmd.startsWith('FAN_')){let v=cmd==='FAN_AUTO'?'AUTO':cmd.split('_')[1]; $('fanState').textContent=v+'/255'; if(v!=='AUTO') $('fanRange').value=v;}
-  }catch(e){ log('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="vertical-align:middle"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg> error '+e); }
+    if(cmd==='LED_ON') {actuadores.led=true; $('swLed').classList.add('on'); $('ledState').textContent='ON'; $('ledState').classList.add('active');}
+    if(cmd==='LED_OFF') {actuadores.led=false; $('swLed').classList.remove('on'); $('ledState').textContent='OFF'; $('ledState').classList.remove('active');}
+    if(cmd==='RELAY_ON') {actuadores.relay=true; $('swRelay').classList.add('on'); $('relayState').textContent='ON'; $('relayState').classList.add('active');}
+    if(cmd==='RELAY_OFF') {actuadores.relay=false; $('swRelay').classList.remove('on'); $('relayState').textContent='OFF'; $('relayState').classList.remove('active');}
+    if(cmd.startsWith('FAN_')){
+      let v=cmd==='FAN_AUTO'?'AUTO':cmd.split('_')[1];
+      $('fanState').textContent=v+(v==='AUTO'?'':'/255');
+      if(v!=='AUTO') $('fanRange').value=v;
+      if(v==='0'||v==='OFF'){ $('fanState').classList.remove('active'); } else { $('fanState').classList.add('active'); }
+    }
+  }catch(e){ log('Error de envío: '+(e && e.message ? e.message : e)); }
   // fallback viejo: /api/actuador
   try{ await fetch('/api/actuador',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd, puerto: selectedNodePort})}); }catch(e){}
 }
