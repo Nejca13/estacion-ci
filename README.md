@@ -57,3 +57,5 @@ git clone <repo> estacion-ci
 
 * HTML sin emojis — usar iconos SVG (heroicons). `dashboard_clase4.html` ya migrado (5 SVG).
 * No editar directo en Pi; todo via git + deploy.
+
+<!-- test deploy via HTTP vie 04 sep 2026 12:22:22 -03 -->
