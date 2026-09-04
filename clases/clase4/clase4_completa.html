@@ -1,14 +1,4 @@
-<!-- CLASE 4 COMPLETA - generada 2026-09-04 -->
-<div style="font-family: Arial, sans-serif; max-width: 900px; margin: auto; color:#333; line-height:1.7;">
-  <div style="background: linear-gradient(135deg,#0f172a,#0891b2); color:white; padding:25px; border-radius:12px; margin-bottom:25px;">
-    <h1 style="margin:0;">Clase 4 – Punteros y Structs con Estación Meteorológica (Arduino)</h1>
-    <p style="opacity:0.85;">Continuidad Clases 1-3 · Struct Sensor + punteros + array + dashboard 9600 · 4 hs</p>
-  </div>
-  <div style="background:#f1f5f9; padding:15px; border-radius:8px; margin-bottom:20px;">
-    <b>Flujo 1→4:</b> C1 variables → C2 if/switch alertas → C3 for/millis/CSV dashboard → <b>C4 struct+punteros para organizarlo todo</b> (mismo hardware, mismo Serial 9600, mismo dashboard).
-  </div>
-</div>
-<hr>
+<!-- CLASE 4 COMPLETA - Tailscale Funnel estable -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -79,8 +69,66 @@ Sensor dht11 = {
         </div>
     </div>
 
-    <div style="background:#fefce8; border-left:4px solid #eab308; padding:12px 16px; border-radius:6px; margin:15px 0;">
-        <b>💡 En Arduino (.ino) es idéntico:</b> <code>struct</code> funciona igual en C y en Arduino C++. Pegá este mismo código en tu sketch de Clase 3 y compila.
+     <div style="background:#fefce8; border-left:4px solid #eab308; padding:12px 16px; border-radius:6px; margin:15px 0;">
+        <b>En Arduino (.ino) es idéntico:</b> <code>struct</code> funciona igual en C y en Arduino C++. Pegá este mismo código en tu sketch de Clase 3 y compila.
+    </div>
+
+    <div style="background:#fff; padding:25px; border-radius:12px; border:1px solid #ddd; margin-bottom:25px;">
+        <h2 style="margin-top:0;">1b. Hardware paso a paso — agregamos 3 sensores nuevos</h2>
+        <p>Clase 3 ya tenés <b>DHT11 en D2</b> cableado. Hoy sumamos <b>LM35 (A0) + LDR (A1) + Agua (A2)</b> sin desarmar lo anterior. Todo a <b>5V/GND</b> de la protoboard.</p>
+
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:14px; border-radius:8px; margin:12px 0;">
+            <h3 style="margin:0 0 8px 0; color:#166534;">Lista de materiales (por grupo)</h3>
+            <ul style="margin:0;">
+                <li>1x LM35 (TO-92, 3 pines) + 3 cables dupont</li>
+                <li>1x LDR + 1x resistencia 10kΩ (divisor) + 2 cables</li>
+                <li>1x Water Sensor (placa) + 3 cables</li>
+                <li>Protoboard + Arduino Uno ya usados en Clase 3</li>
+            </ul>
+        </div>
+
+        <h3 style="margin:0 0 8px 0;">Paso 0 — Alimentación</h3>
+        <ol style="margin:0 0 12px 20px;">
+            <li>Conectá <b>5V Arduino → riel rojo protoboard</b> y <b>GND → riel azul</b>.</li>
+            <li>Verificá con multímetro: 5V entre rieles.</li>
+        </ol>
+
+        <h3 style="margin:0 0 8px 0;">Paso 1 — LM35 en A0 ( analógico, sin divisor )</h3>
+        <table style="width:100%; border-collapse:collapse; font-size:14px; margin:6px 0;">
+            <tr style="background:#0f172a; color:white;"><th style="padding:6px; text-align:left;">LM35 pin</th><th style="padding:6px; text-align:left;">Cable</th><th style="padding:6px; text-align:left;">Arduino / Protoboard</th></tr>
+            <tr><td style="padding:6px; border:1px solid #ddd;">VCC (izq, plano al frente)</td><td style="padding:6px; border:1px solid #ddd;">Rojo</td><td style="padding:6px; border:1px solid #ddd;">Riel 5V</td></tr>
+            <tr style="background:#f8fafc;"><td style="padding:6px; border:1px solid #ddd;">GND (der)</td><td style="padding:6px; border:1px solid #ddd;">Negro</td><td style="padding:6px; border:1px solid #ddd;">Riel GND</td></tr>
+            <tr><td style="padding:6px; border:1px solid #ddd;">OUT (centro)</td><td style="padding:6px; border:1px solid #ddd;">Amarillo</td><td style="padding:6px; border:1px solid #ddd;">A0</td></tr>
+        </table>
+        <p style="font-size:13px; color:#666;">Fórmula: <code>temp = analogRead(A0)*5.0/1023*100</code>. Sin resistencia adicional. Dejá 2-3mm entre pines para no cortocircuitar.</p>
+
+        <h3 style="margin:0 0 8px 0;">Paso 2 — LDR en A1 (divisor 10k)</h3>
+        <table style="width:100%; border-collapse:collapse; font-size:14px; margin:6px 0;">
+            <tr style="background:#0f172a; color:white;"><th style="padding:6px; text-align:left;">Extremo</th><th style="padding:6px; text-align:left;">Cable</th><th style="padding:6px; text-align:left;">Destino</th></tr>
+            <tr><td style="padding:6px; border:1px solid #ddd;">LDR pata 1</td><td style="padding:6px; border:1px solid #ddd;">Rojo</td><td style="padding:6px; border:1px solid #ddd;">5V</td></tr>
+            <tr style="background:#f8fafc;"><td style="padding:6px; border:1px solid #ddd;">LDR pata 2 + Resistencia 10k</td><td style="padding:6px; border:1px solid #ddd;">Amarillo</td><td style="padding:6px; border:1px solid #ddd;">A1 (nodo común)</td></tr>
+            <tr><td style="padding:6px; border:1px solid #ddd;">Resistencia 10k otro extremo</td><td style="padding:6px; border:1px solid #ddd;">Negro</td><td style="padding:6px; border:1px solid #ddd;">GND</td></tr>
+        </table>
+        <p style="font-size:13px; color:#666;">Divisor: <code>A1 = 5V * 10k/(R_ldr+10k)</code>. Oscuro → R alta → A1 bajo (&lt;200). Día → R baja → A1 alto (&gt;600). Probá tapando la LDR y mirá `Serial.println(analogRead(A1))`.</p>
+
+        <h3 style="margin:0 0 8px 0;">Paso 3 — Water Sensor en A2</h3>
+        <table style="width:100%; border-collapse:collapse; font-size:14px; margin:6px 0;">
+            <tr style="background:#0f172a; color:white;"><th style="padding:6px; text-align:left;">Placa</th><th style="padding:6px; text-align:left;">Cable</th><th style="padding:6px; text-align:left;">Arduino</th></tr>
+            <tr><td style="padding:6px; border:1px solid #ddd;">VCC (+)</td><td style="padding:6px; border:1px solid #ddd;">Rojo</td><td style="padding:6px; border:1px solid #ddd;">5V</td></tr>
+            <tr style="background:#f8fafc;"><td style="padding:6px; border:1px solid #ddd;">GND (-)</td><td style="padding:6px; border:1px solid #ddd;">Negro</td><td style="padding:6px; border:1px solid #ddd;">GND</td></tr>
+            <tr><td style="padding:6px; border:1px solid #ddd;">S (señal)</td><td style="padding:6px; border:1px solid #ddd;">Verde</td><td style="padding:6px; border:1px solid #ddd;">A2</td></tr>
+        </table>
+        <p style="font-size:13px; color:#666;">Seco ~120, mojado &gt;600. Umbral Clase 2/4 = 500. No sumerjas el conector, solo la zona de pistas.</p>
+
+        <div style="background:#fef2f2; border-left:4px solid #ef4444; padding:10px 14px; border-radius:6px; margin:10px 0;">
+            <b>Verificación (2 min):</b> Cargá este sketch mínimo y abrí Monitor 9600:<br>
+            <code>void setup(){Serial.begin(9600);} void loop(){Serial.print(analogRead(A0)); Serial.print(","); Serial.print(analogRead(A1)); Serial.print(","); Serial.println(analogRead(A2)); delay(500);}</code><br>
+            Debe imprimir 3 números 0-1023 que cambian al tapar LDR o mojar la placa.
+        </div>
+
+        <div style="background:#ecfeff; border-left:4px solid #06b6d4; padding:10px 14px; border-radius:6px;">
+            <b>Foto/diagrama:</b> DHT11 (D2) ya estaba a la izq de la protoboard → agregá LM35 al centro, LDR+10k a la derecha, Water arriba. Todos comparten rieles 5V/GND. No cruces 5V con GND.
+        </div>
     </div>
 
     <div style="background:#fff; padding:25px; border-radius:12px; border:1px solid #ddd; margin-bottom:25px;">
@@ -557,6 +605,54 @@ void menu_principal(Sensor s[], int n){
     </div>
 
     <div style="background:#fff; padding:25px; border-radius:12px; border:1px solid #ddd; margin-bottom:25px;">
+        <h2 style="margin-top:0;">2b. Hardware actuadores — cableado paso a paso</h2>
+        <p>Para que <code>verificar_alertas()</code> y el dashboard puedan <b>actuar</b> (no solo medir), agregamos 3 LEDs + 1 relay + 2 botones. Todo en la misma protoboard, sin desarmar sensores.</p>
+
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:14px; border-radius:8px; margin:10px 0;">
+            <h3 style="margin:0 0 8px 0; color:#166534;">Lista actuadores (por grupo)</h3>
+            <ul style="margin:0;">
+                <li>3x LED 5mm (rojo/naranja/verde) + 3x resistencia 220Ω</li>
+                <li>1x módulo Relay 5V (1 canal) + 3 cables</li>
+                <li>2x pulsador 6x6mm + 2 cables (a GND, sin resistencia)</li>
+            </ul>
+        </div>
+
+        <h3 style="margin:0 0 8px 0;">Paso 4 — LEDs de alerta D8/D9/D10 (con 220Ω)</h3>
+        <table style="width:100%; border-collapse:collapse; font-size:14px; margin:6px 0;">
+            <tr style="background:#0f172a; color:white;"><th style="padding:6px; text-align:left;">LED</th><th style="padding:6px; text-align:left;">Ánodo (+) con 220Ω</th><th style="padding:6px; text-align:left;">Cátodo (-)</th><th style="padding:6px; text-align:left;">Función struct</th></tr>
+            <tr><td style="padding:6px; border:1px solid #ddd;">Rojo (critico)</td><td style="padding:6px; border:1px solid #ddd;">220Ω → D8</td><td style="padding:6px; border:1px solid #ddd;">GND</td><td style="padding:6px; border:1px solid #ddd;"><code>verificar_alertas() → HIGH si &gt; critico</code></td></tr>
+            <tr style="background:#f8fafc;"><td style="padding:6px; border:1px solid #ddd;">Naranja (alerta)</td><td style="padding:6px; border:1px solid #ddd;">220Ω → D9</td><td style="padding:6px; border:1px solid #ddd;">GND</td><td style="padding:6px; border:1px solid #ddd;"><code>HIGH si &gt; alerta</code></td></tr>
+            <tr><td style="padding:6px; border:1px solid #ddd;">Verde (lluvia)</td><td style="padding:6px; border:1px solid #ddd;">220Ω → D10</td><td style="padding:6px; border:1px solid #ddd;">GND</td><td style="padding:6px; border:1px solid #ddd;"><code>HIGH si LLUVIA &gt;500</code></td></tr>
+        </table>
+        <p style="font-size:13px; color:#666;">Resistencia siempre en serie con el ánodo. <code>pinMode(D8,OUTPUT)</code> en <code>setup()</code>. Probá: <code>digitalWrite(8,HIGH); delay(500); digitalWrite(8,LOW);</code></p>
+
+        <h3 style="margin:0 0 8px 0;">Paso 5 — Relay en D7 (bomba/riego)</h3>
+        <table style="width:100%; border-collapse:collapse; font-size:14px; margin:6px 0;">
+            <tr style="background:#0f172a; color:white;"><th style="padding:6px; text-align:left;">Relay pin</th><th style="padding:6px; text-align:left;">Cable</th><th style="padding:6px; text-align:left;">Arduino</th></tr>
+            <tr><td style="padding:6px; border:1px solid #ddd;">VCC</td><td style="padding:6px; border:1px solid #ddd;">Rojo</td><td style="padding:6px; border:1px solid #ddd;">5V</td></tr>
+            <tr style="background:#f8fafc;"><td style="padding:6px; border:1px solid #ddd;">GND</td><td style="padding:6px; border:1px solid #ddd;">Negro</td><td style="padding:6px; border:1px solid #ddd;">GND</td></tr>
+            <tr><td style="padding:6px; border:1px solid #ddd;">IN</td><td style="padding:6px; border:1px solid #ddd;">Azul</td><td style="padding:6px; border:1px solid #ddd;">D7</td></tr>
+        </table>
+        <p style="font-size:13px; color:#666;">Módulo con optoacoplador: `HIGH` activa relay. Conectá solo la bobina ahora; la carga 220V se ve en TP. `pinMode(7,OUTPUT); digitalWrite(7,LOW);` inicia apagado.</p>
+
+        <h3 style="margin:0 0 8px 0;">Paso 6 — Botones D3/D4 (a GND, INPUT_PULLUP)</h3>
+        <table style="width:100%; border-collapse:collapse; font-size:14px; margin:6px 0;">
+            <tr style="background:#0f172a; color:white;"><th style="padding:6px; text-align:left;">Botón</th><th style="padding:6px; text-align:left;">Pata 1</th><th style="padding:6px; text-align:left;">Pata 2</th></tr>
+            <tr><td style="padding:6px; border:1px solid #ddd;">MENU (D3)</td><td style="padding:6px; border:1px solid #ddd;">D3</td><td style="padding:6px; border:1px solid #ddd;">GND</td></tr>
+            <tr style="background:#f8fafc;"><td style="padding:6px; border:1px solid #ddd;">SEL (D4)</td><td style="padding:6px; border:1px solid #ddd;">D4</td><td style="padding:6px; border:1px solid #ddd;">GND</td></tr>
+        </table>
+        <p style="font-size:13px; color:#666;">Sin resistencia externa: `pinMode(3,INPUT_PULLUP)`. Lectura `LOW` = presionado. Debounce `200ms` en `menu_actualizar()`.</p>
+
+        <div style="background:#fef2f2; border-left:4px solid #ef4444; padding:10px 14px; border-radius:6px; margin:10px 0;">
+            <b>Verificación actuadores (1 min):</b> `void loop(){digitalWrite(8,HIGH); digitalWrite(9,HIGH); digitalWrite(10,HIGH); digitalWrite(7,HIGH); delay(500); digitalWrite(8,LOW); digitalWrite(9,LOW); digitalWrite(10,LOW); digitalWrite(7,LOW); delay(500);}` debe parpadear todo.
+        </div>
+
+        <div style="background:#ecfeff; border-left:4px solid #06b6d4; padding:10px 14px; border-radius:6px;">
+            <b>Diagrama final protoboard:</b> Fila sup: DHT11 D2 izq, LM35 centro, LDR+10k der, Water A2 arriba. Fila inf: 3 LEDs D8-10 con 220Ω a GND, relay D7 al borde, 2 botones D3/D4 a GND. Rieles 5V/GND compartidos, sin cruces.
+        </div>
+    </div>
+
+    <div style="background:#fff; padding:25px; border-radius:12px; border:1px solid #ddd; margin-bottom:25px;">
         <h2 style="margin-top:0;">3. Sistema completo: loop() no bloqueante (integra Clases 2 + 3 + hoy)</h2>
         <p>Un <code>loop()</code> que con <code>millis()</code> (Clase 3) hace: leer → alertar (<code>if</code> Clase2) → enviar CSV al dashboard → atender botones/LCD.</p>
 
@@ -1015,3 +1111,78 @@ Sensor* buscar_sensor(Sensor s[], int n, const char *nom) {
 
 </body>
 </html>
+
+<hr>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clase 4 – Punteros y Structs con Estación Meteorológica</title>
+</head>
+<body>
+
+<div style="font-family: Arial, sans-serif; max-width: 900px; margin: auto; color:#333; line-height:1.7;">
+
+    <div style="background: linear-gradient(135deg,#0f172a,#0891b2); color:white; padding:25px; border-radius:12px; margin-bottom:25px;">
+        <h1 style="margin:0 0 8px 0; color: #fff;">Clase 4 – Punteros y Structs</h1>
+        <p style="margin:0; opacity:0.85;">Organizar sensores en structs, pasar por referencia, array de sensores</p>
+    </div>
+
+    <div style="background:#ecfeff; padding:25px; border-radius:12px; border-left:6px solid #06b6d4; margin-bottom:25px;">
+        <h2 style="margin-top:0;">¿Qué vamos a ver hoy?</h2>
+        <p><b>Repaso express 1-3:</b> Clase 1 = variables/tipos, Clase 2 = <code>if/switch</code> para alertas, Clase 3 = <code>for/millis()/Serial 9600</code> con DHT11 real y dashboard CSV. Hasta ahora usamos variables sueltas para cada sensor. Hoy aprendemos a <b>agrupar datos relacionados</b> en <code>struct</code> y a usar <b>punteros</b> para pasar sensores por referencia sin copiar datos (clave en Arduino con 2KB RAM).</p>
+        <p>Al final tendremos un <b>array de sensores</b> que la estación recorre con <code>for</code> (Clase 3) para leer, promediar y alertar con <code>if</code> (Clase 2), enviando todo por <b>Serial 9600 al mismo dashboard</b> de la clase pasada.</p>
+    </div>
+
+    <div style="background:#fff; padding:25px; border-radius:12px; border:1px solid #ddd; margin-bottom:25px;">
+        <h2 style="margin-top:0;">Temario</h2>
+        <ul>
+            <li><b>Bloque 1</b> – <code>struct Sensor</code>: agrupar pin, tipo, valor, umbral, nombre</li>
+            <li><b>Bloque 2</b> – Punteros: <code>&</code>, <code>*</code>, paso por referencia, funciones que modifican sensores</li>
+            <li><b>Bloque 3</b> – Array de structs: recorrer sensores, leer todos, alertar todos, menú dinámico</li>
+        </ul>
+    </div>
+
+    <div style="background:#fff; padding:25px; border-radius:12px; border:1px solid #ddd; margin-bottom:25px;">
+        <h2 style="margin-top:0;">Hardware: mismo kit + 2 sensores nuevos</h2>
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:16px; border-radius:8px; margin-bottom:12px;">
+            <h3 style="margin:0 0 8px 0; color:#166534;">🔌 Conexiones (continuidad Clase 3 + agregado)</h3>
+            <table style="width:100%; border-collapse:collapse; font-size:14px;">
+                <thead>
+                    <tr style="background:#0f172a; color:white;">
+                        <th style="padding:8px; text-align:left;">Sensor</th>
+                        <th style="padding:8px; text-align:left;">Pin</th>
+                        <th style="padding:8px; text-align:left;">Tipo en struct</th>
+                        <th style="padding:8px; text-align:left;">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="background:#f8fafc;"><td style="padding:8px; border:1px solid #ddd;">DHT11</td><td style="padding:8px; border:1px solid #ddd;">D2</td><td style="padding:8px; border:1px solid #ddd;">DIGITAL</td><td style="padding:8px; border:1px solid #ddd;">✅ Clase 3</td></tr>
+                    <tr><td style="padding:8px; border:1px solid #ddd;">LM35</td><td style="padding:8px; border:1px solid #ddd;">A0</td><td style="padding:8px; border:1px solid #ddd;">ANALOGICO</td><td style="padding:8px; border:1px solid #ddd;">🆕 Hoy</td></tr>
+                    <tr style="background:#f8fafc;"><td style="padding:8px; border:1px solid #ddd;">LDR</td><td style="padding:8px; border:1px solid #ddd;">A1</td><td style="padding:8px; border:1px solid #ddd;">ANALOGICO</td><td style="padding:8px; border:1px solid #ddd;">🆕 Hoy</td></tr>
+                    <tr><td style="padding:8px; border:1px solid #ddd;">Water Sensor</td><td style="padding:8px; border:1px solid #ddd;">A2</td><td style="padding:8px; border:1px solid #ddd;">ANALOGICO</td><td style="padding:8px; border:1px solid #ddd;">Opcional</td></tr>
+                    <tr style="background:#f8fafc;"><td style="padding:8px; border:1px solid #ddd;">Botones + LEDs</td><td style="padding:8px; border:1px solid #ddd;">D3/D4, D8-D10</td><td style="padding:8px; border:1px solid #ddd;">DIGITAL</td><td style="padding:8px; border:1px solid #ddd;">🆕 Menú</td></tr>
+                </tbody>
+            </table>
+            <p style="margin:10px 0 0 0; font-size:13px; color:#666;">💡 Si no tenés LM35/LDR, usá <code>#define SIMULACION</code> (mismo código, valores con <code>random()</code>). Dashboard sigue igual: Serial 9600 CSV.</p>
+        </div>
+    </div>
+
+    <div style="background:#f0fdf4; border:2px solid #bbf7d0; padding:25px; border-radius:12px; margin-bottom:25px;">
+        <h2 style="margin-top:0; color:#166534;">Al final de esta clase vas a poder:</h2>
+        <ul>
+            <li>✅ Definir <code>struct Sensor</code> con pin, tipo, valor, umbrales, nombre</li>
+            <li>✅ Usar <code>&</code> (dirección) y <code>*</code> (desreferenciar) para pasar sensores por referencia</li>
+            <li>✅ Escribir funciones que <b>modifican</b> un sensor recibido por puntero</li>
+            <li>✅ Crear y recorrer un <b>array de sensores</b> con <code>for</code></li>
+            <li>✅ Implementar <code>leer_todos()</code>, <code>alertar_todos()</code>, <code>promediar_sensor()</code></li>
+        </ul>
+    </div>
+
+</div>
+
+</body>
+</html>
+
+<hr>
