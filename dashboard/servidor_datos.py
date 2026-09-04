@@ -222,17 +222,14 @@ class Handler(BaseHTTPRequestHandler):
                 except: pass
             if not token_ok:
                 self._json({"error":"unauthorized - token invalido"},401); return
-            # Ejecuta git pull en /home/nico/estacion-ci y copia dashboards
+            # Ejecuta git pull en /home/nico/estacion-ci y copia dashboards (sin restart, lo hace el workflow vía SSH tailnet)
             log=[]
             try:
                 r=subprocess.run(["git","-C","/home/nico/estacion-ci","pull"], capture_output=True, text=True, timeout=30)
                 log.append("git pull: "+(r.stdout.strip() or r.stderr.strip()))
-                # copia archivos desplegables
                 r2=subprocess.run(["rsync","-av","/home/nico/estacion-ci/dashboard/","/home/nico/dashboard/","--exclude",".git"], capture_output=True, text=True, timeout=20)
                 log.append("rsync: "+r2.stdout.strip()[:500])
-                # reinicia servidor de forma diferida
-                subprocess.Popen(["bash","-c","sleep 1; pkill -f servidor_datos.py; sleep 1; setsid python3 -u /home/nico/dashboard/servidor_datos.py > /tmp/c8000.log 2>&1 < /dev/null &"], start_new_session=True)
-                log.append("restart programado")
+                log.append("listo - reinicio via workflow SSH si es necesario")
             except Exception as e:
                 log.append("error: "+str(e))
             self._json({"result":"deploy iniciado","log":log})

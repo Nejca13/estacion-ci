@@ -18,20 +18,25 @@ jobs:
       - name: Deploy via Tailscale (tailnet)
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          PI_TAILNET: "100.121.34.122"
+          PI_PASS: ${{ secrets.PI_PASS }}
         run: |
-          PI_TAILNET="http://100.121.34.122:8000"
-          echo "Desplegando a $PI_TAILNET/api/deploy"
-          curl -s -X POST "$PI_TAILNET/api/deploy" \
+          sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+          echo "Desplegando a http://$PI_TAILNET:8000/api/deploy"
+          curl -s -X POST "http://$PI_TAILNET:8000/api/deploy" \
             -H "Authorization: Bearer $DEPLOY_TOKEN" \
             -H "Content-Type: application/json" \
             -d "{\"token\":\"$DEPLOY_TOKEN\"}" | tee /tmp/deploy.json
           cat /tmp/deploy.json
           grep -q "deploy iniciado" /tmp/deploy.json || exit 1
-          echo "Esperando reinicio..."
-          for i in 1 2 3 4 5; do sleep 5; echo "Intento $i/5"; curl -s "$PI_TAILNET/" | grep -q "CEAER" && echo "OK index" && break; done
-          curl -s "$PI_TAILNET/" | grep -q "CEAER" && echo "OK index final" || exit 1
-          for i in 1 2 3; do curl -s "$PI_TAILNET/clase4" | grep -q "Clase 4" && echo "OK clase4" && break; sleep 3; done
-          curl -s "$PI_TAILNET/clase4" | grep -q "Clase 4" && echo "OK clase4 final" || exit 1
+          if git diff --name-only HEAD~1 HEAD | grep -q "servidor_datos.py"; then
+            echo "Reiniciando servidor via tailnet SSH..."
+            sshpass -p "$PI_PASS" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 nico@$PI_TAILNET "echo '$PI_PASS' | sudo -S bash -c 'pkill -f servidor_datos.py; sleep 1; setsid python3 -u /home/nico/dashboard/servidor_datos.py > /tmp/c8000.log 2>&1 < /dev/null & echo \$!; sleep 2; cat /tmp/c8000.log | head -5; ss -tlnp | grep 8000'"
+          fi
+          echo "Verificando..."
+          for i in 1 2 3; do sleep 3; curl -s "http://$PI_TAILNET:8000/" | grep -q "CEAER" && echo "OK index" && break; echo "Intento $i/3"; done
+          curl -s "http://$PI_TAILNET:8000/" | grep -q "CEAER" && echo "OK index final" || exit 1
+          curl -s "http://$PI_TAILNET:8000/clase4" | grep -q "Clase 4" && echo "OK clase4" || exit 1
       - name: Lint
         run: |
           python3 -m py_compile dashboard/servidor_datos.py
