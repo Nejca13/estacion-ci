@@ -1,5 +1,4 @@
 name: Deploy to Pi Zero
-
 on:
   push:
     branches: [main]
@@ -7,46 +6,36 @@ on:
       - "dashboard/**"
       - "clases/**"
   workflow_dispatch:
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup sshpass
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
-
-      - name: Rsync to Pi
+      - name: Deploy via HTTP tunnel
         env:
-          PI_HOST: ${{ secrets.PI_HOST }}
-          PI_USER: ${{ secrets.PI_USER }}
-          PI_PASS: ${{ secrets.PI_PASS }}
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          PI_URL: ${{ secrets.PI_URL }}
         run: |
-          sshpass -p "$PI_PASS" rsync -avz -e "ssh -o StrictHostKeyChecking=no" dashboard/ "$PI_USER@$PI_HOST:/home/nico/dashboard/"
-
-      - name: Restart server
-        env:
-          PI_HOST: ${{ secrets.PI_HOST }}
-          PI_USER: ${{ secrets.PI_USER }}
-          PI_PASS: ${{ secrets.PI_PASS }}
-        run: |
-          sshpass -p "$PI_PASS" ssh -o StrictHostKeyChecking=no "$PI_USER@$PI_HOST" bash <<'EOS'
-            set -e
-            pkill -f servidor_datos.py || true
-            sleep 1
-            setsid python3 -u /home/nico/dashboard/servidor_datos.py > /tmp/c8000.log 2>&1 < /dev/null &
-            sleep 2
-            ss -tlnp | grep 8000
-            curl -s http://127.0.0.1:8000/ | grep -q "CEAER" && echo "OK index" || exit 1
-            curl -s http://127.0.0.1:8000/clase4 | grep -q "Clase 4" && echo "OK clase4" || exit 1
-          EOS
-
-      - name: Lint checks
+          if [ -z "$PI_URL" ] || [ -z "$DEPLOY_TOKEN" ]; then
+            echo "Faltan secrets PI_URL y DEPLOY_TOKEN"
+            exit 1
+          fi
+          echo "Desplegando a $PI_URL/api/deploy"
+          curl -s -X POST "$PI_URL/api/deploy" \
+            -H "Authorization: Bearer $DEPLOY_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"token\":\"$DEPLOY_TOKEN\"}" | tee /tmp/deploy.json
+          cat /tmp/deploy.json
+          if ! grep -q "deploy iniciado" /tmp/deploy.json; then
+            echo "Deploy falló"
+            exit 1
+          fi
+          echo "Esperando reinicio..."
+          sleep 6
+          curl -s "$PI_URL/" | grep -q "CEAER" && echo "OK index" || exit 1
+          curl -s "$PI_URL/clase4" | grep -q "Clase 4" && echo "OK clase4" || exit 1
+      - name: Lint
         run: |
           python3 -m py_compile dashboard/servidor_datos.py
-          echo "HTML check"
-          for f in dashboard/*.html; do echo " $f $(wc -l < "$f") lines"; done
-          # sin emojis en dashboards
-          if grep -P -q '[\x{1F300}-\x{1FAFF}]' dashboard/dashboard_clase4.html; then echo "ERROR: emojis en dashboard_clase4.html"; exit 1; fi
-          echo "No emojis ✓"
+          echo "HTML lines:"; wc -l dashboard/*.html
+          if grep -P -q '[\x{1F300}-\x{1FAFF}]' dashboard/dashboard_clase4.html; then echo "ERROR emojis"; exit 1; fi

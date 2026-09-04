@@ -183,17 +183,59 @@ class Handler(BaseHTTPRequestHandler):
         elif ruta=="/api/escanear": self._json(escanear())
         elif ruta=="/api/redes_guardadas": self._json(redes_guardadas())
         else: self._json({"error":"no existe "+ruta},404)
+    def _auth_deploy(self):
+        # Soporta Authorization: Bearer <token> o body.token
+        auth=self.headers.get("Authorization","")
+        token=""
+        if auth.startswith("Bearer "): token=auth[7:].strip()
+        # fallback: leer token de body si no vino en header (se lee afuera)
+        # compara con /home/nico/.deploy_token
+        try:
+            with open("/home/nico/.deploy_token") as f: expected=f.read().strip()
+        except: expected=""
+        if expected and token==expected: return True
+        # también acepta token en body (para curl simple)
+        return False
+
     def do_POST(self):
         ruta=self.path.split("?")[0]
         ln=int(self.headers.get("Content-Length",0))
         body={}
+        raw=b""
         if ln:
-            try: body=json.loads(self.rfile.read(ln).decode())
+            try:
+                raw=self.rfile.read(ln)
+                body=json.loads(raw.decode())
             except: body={}
         if ruta in ("/api/clase4/actuador","/api/actuador","/api/clase4/actuadores"):
             cmd=body.get("cmd","")
             if not cmd: self._json({"error":"falta cmd"},400); return
             res=enviar_a_arduino(cmd); self._json({"result":res,"estado":estado["actuadores"],"log":estado["log_act"][-5:]})
+        elif ruta=="/api/deploy":
+            # Deploy por HTTP usando mismo túnel cloudflare - verifica token
+            token_ok=self._auth_deploy()
+            # también acepta token en JSON body
+            if not token_ok and body.get("token"):
+                try:
+                    with open("/home/nico/.deploy_token") as f: expected=f.read().strip()
+                    token_ok=(body.get("token")==expected)
+                except: pass
+            if not token_ok:
+                self._json({"error":"unauthorized - token invalido"},401); return
+            # Ejecuta git pull en /home/nico/estacion-ci y copia dashboards
+            log=[]
+            try:
+                r=subprocess.run(["git","-C","/home/nico/estacion-ci","pull"], capture_output=True, text=True, timeout=30)
+                log.append("git pull: "+(r.stdout.strip() or r.stderr.strip()))
+                # copia archivos desplegables
+                r2=subprocess.run(["rsync","-av","/home/nico/estacion-ci/dashboard/","/home/nico/dashboard/","--exclude",".git"], capture_output=True, text=True, timeout=20)
+                log.append("rsync: "+r2.stdout.strip()[:500])
+                # reinicia servidor de forma diferida
+                subprocess.Popen(["bash","-c","sleep 1; pkill -f servidor_datos.py; sleep 1; setsid python3 -u /home/nico/dashboard/servidor_datos.py > /tmp/c8000.log 2>&1 < /dev/null &"], start_new_session=True)
+                log.append("restart programado")
+            except Exception as e:
+                log.append("error: "+str(e))
+            self._json({"result":"deploy iniciado","log":log})
         elif ruta=="/api/conectar":
             ssid=body.get("ssid",""); clave=body.get("clave",""); res=conectar(ssid,clave); self._json({"resultado":res})
         elif ruta=="/api/olvidar":
