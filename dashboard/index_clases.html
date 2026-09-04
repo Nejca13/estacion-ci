@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CEAER - IoT Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
+<style>:root{--bg:#090d16;--sur:rgba(17,24,39,0.85);--b:rgba(255,255,255,0.08);--muted:#94a3b8}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#090d16;color:#f8fafc;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.box{max-width:700px;width:100%;background:var(--sur);border:1px solid var(--b);border-radius:18px;padding:28px}
+h1{font-size:1.5rem;margin-bottom:6px} p{color:var(--muted);font-size:.95rem;margin-bottom:22px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
+.card{border:1px solid var(--b);border-radius:14px;padding:18px;background:rgba(26,35,52,0.6);text-decoration:none;color:#f8fafc;display:block;transition:.15s}
+.card:hover{transform:translateY(-2px);border-color:rgba(56,189,248,0.3)}
+.badge{display:inline-block;font-size:.75rem;font-weight:700;padding:3px 8px;border-radius:999px;margin-bottom:8px}
+.b3{background:rgba(14,165,233,0.15);color:#38bdf8;border:1px solid rgba(14,165,233,0.3)}
+.b4{background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.3)}
+.card h3{margin:4px 0 6px 0} .card p{font-size:.85rem;color:var(--muted);margin:0}
+small{color:var(--muted)} .foot{margin-top:18px;font-size:.85rem;color:var(--muted);text-align:center}
+</style></head>
+<body>
+<div class="box">
+ <h1>🌦️ Estación Meteorológica – CEAER</h1>
+ <p>Elegí la clase para ver su dashboard. Mismo servicio en <b>:8000</b>, un solo túnel.</p>
+ <div class="grid">
+  <a class="card" href="/clase3"><span class="badge b3">Clase 3</span><h3>Bucles + DHT11 + CSV</h3><p>for / millis / Serial 9600. Dashboard original con temp, hum, sensación y punto de rocío.</p><small>→ /clase3</small></a>
+  <a class="card" href="/clase4"><span class="badge b4">Clase 4 · NUEVO</span><h3>Structs + Punteros + Actuadores</h3><p>Array de Sensores, LDR día/noche/tarde, agua, hora y control de LED/relay/ventilador.</p><small>→ /clase4</small></a>
+ </div>
+ <div class="foot"><a href="/panel" style="color:#38bdf8">Panel de Red</a> · <a href="/datos" style="color:#94a3b8">/datos (Clase3)</a> · <a href="/api/clase4/datos" style="color:#94a3b8">/api/clase4/datos</a></div>
+</div>
+</body></html>

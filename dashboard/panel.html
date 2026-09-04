@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Panel de Red - Raspberry Pi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #090d16;
+      --bg-surface: rgba(17, 24, 39, 0.8);
+      --bg-card: rgba(26, 35, 52, 0.7);
+      --bg-input: rgba(15, 23, 42, 0.85);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(56, 189, 248, 0.5);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --primary: #38bdf8;
+      --primary-hover: #0ea5e9;
+      --primary-glow: rgba(56, 189, 248, 0.2);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.15);
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius-xl: 18px;
+      --radius-lg: 12px;
+      --radius-md: 8px;
+      --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 1px 1px var(--border-subtle);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-base);
+      background-image: 
+        radial-gradient(at 10% 10%, rgba(56, 189, 248, 0.1) 0px, transparent 50%),
+        radial-gradient(at 90% 90%, rgba(99, 102, 241, 0.08) 0px, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 860px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 18px 24px;
+      background: var(--bg-surface);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-card);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+    }
+
+    .brand-info h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-info p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-surface);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 24px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+    }
+
+    /* Status Grid */
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+    }
+
+    .stat-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stat-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      word-break: break-all;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .stat-val-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .pill.online {
+      background: var(--success-glow);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .pill.offline {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+
+    .pill.warning {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    /* RAM Progress Bar */
+    .progress-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #38bdf8, #818cf8);
+      border-radius: 9999px;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    /* Actions Bar */
+    .actions-bar {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--primary);
+      color: #090d16;
+      border: none;
+      padding: 9px 16px;
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.sec {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+    }
+
+    button.sec:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    button.danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+
+    button.danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+      color: #fecaca;
+    }
+
+    button.sm {
+      padding: 6px 12px;
+      font-size: 0.78rem;
+    }
+
+    /* WiFi Networks List */
+    .network-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .network-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      transition: all 0.2s ease;
+    }
+
+    .network-item:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+      background: rgba(30, 41, 59, 0.8);
+    }
+
+    .network-item.active-net {
+      border-color: rgba(16, 185, 129, 0.4);
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    .network-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .signal-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+    }
+
+    .network-details {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .network-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .network-meta {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Inputs */
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-input);
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    .input-icon-btn {
+      position: absolute;
+      right: 8px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px;
+      cursor: pointer;
+    }
+
+    .input-icon-btn:hover {
+      color: #fff;
+      background: transparent;
+      transform: none;
+    }
+
+    /* Icons */
+    .icon {
+      width: 16px;
+      height: 16px;
+      stroke-width: 2;
+      stroke: currentColor;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .spin {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      max-width: 400px;
+      background: #1e293b;
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--primary);
+      color: var(--text-main);
+      padding: 14px 18px;
+      border-radius: var(--radius-md);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      display: none;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.85rem;
+      z-index: 1000;
+      animation: slideUp 0.3s ease;
+    }
+
+    #toast.err {
+      border-left-color: var(--danger);
+      background: #2b171c;
+      color: #fecaca;
+    }
+
+    #toast.success {
+      border-left-color: var(--success);
+      background: #0f291e;
+      color: #d1fae5;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(15px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Modal / Connect Drawer */
+    #connectModal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 999;
+    }
+
+    .modal-content {
+      background: #1e293b;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 24px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      animation: scaleIn 0.2s ease;
+    }
+
+    @keyframes scaleIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <!-- Top Header -->
+    <header>
+      <div class="brand">
+        <div class="brand-icon">
+          <svg class="icon" style="width:22px; height:22px;" viewBox="0 0 24 24">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>
+          </svg>
+        </div>
+        <div class="brand-info">
+          <h1>Panel de Red</h1>
+          <p>Control de Conectividad &bull; Raspberry Pi</p>
+        </div>
+      </div>
+
+      <a href="/" class="nav-link">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
+        </svg>
+        <span>Ver Dashboard</span>
+      </a>
+    </header>
+
+    <!-- Estado del Sistema y Red -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <svg class="icon" style="color:var(--primary);" viewBox="0 0 24 24">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+            <line x1="6" y1="6" x2="6.01" y2="6"/>
+            <line x1="6" y1="18" x2="6.01" y2="18"/>
+          </svg>
+          <span>Estado del Dispositivo</span>
+        </div>
+        <div id="livePill" class="pill online">
+          <span style="width:6px; height:6px; border-radius:50%; background:currentColor;"></span>
+          <span id="txtNetworking">Conectado</span>
+        </div>
+      </div>
+
+      <div class="status-grid">
+        <!-- Red Activa -->
+        <div class="stat-box">
+          <div class="stat-label">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M5 12.55a11 11 0 0 1 14.08 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>
+            </svg>
+            <span>Red Activa</span>
+          </div>
+          <div class="stat-val">
+            <span class="stat-val-text" id="e_ssid" title="--">--</span>
+          </div>
+        </div>
+
+        <!-- Dirección IP -->
+        <div class="stat-box">
+          <div class="stat-label">
+            <svg class="icon" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <span>Dirección IP</span>
+          </div>
+          <div class="stat-val">
+            <span class="stat-val-text" id="e_ip">--</span>
+            <button onclick="copiarIP()" class="sec sm" style="padding:2px 6px; font-size:0.7rem;" title="Copiar IP">
+              <svg class="icon" style="width:13px; height:13px;" viewBox="0 0 24 24">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Internet -->
+        <div class="stat-box">
+          <div class="stat-label">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <span>Internet</span>
+          </div>
+          <div class="stat-val">
+            <span id="e_inet_badge" class="pill">--</span>
+          </div>
+        </div>
+
+        <!-- Temp CPU -->
+        <div class="stat-box">
+          <div class="stat-label">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
+            </svg>
+            <span>Temp. CPU</span>
+          </div>
+          <div class="stat-val">
+            <span id="e_temp">--</span>
+          </div>
+        </div>
+
+        <!-- Memoria RAM -->
+        <div class="stat-box" style="grid-column: span 2;">
+          <div class="stat-label">
+            <svg class="icon" viewBox="0 0 24 24">
+              <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/>
+              <line x1="7" y1="2" x2="7" y2="22"/>
+              <line x1="17" y1="2" x2="17" y2="22"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+            </svg>
+            <span>Uso de Memoria RAM</span>
+          </div>
+          <div class="stat-val" style="font-size:0.9rem;">
+            <span id="e_ram_text">-- / -- MB</span>
+            <span id="e_ram_pct" style="color:var(--primary);">0%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div id="e_ram_bar" class="progress-bar-fill"></div>
+          </div>
+        </div>
+
+        <!-- Uptime -->
+        <div class="stat-box" style="grid-column: span 2;">
+          <div class="stat-label">
+            <svg class="icon" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span>Tiempo Activo (Uptime)</span>
+          </div>
+          <div class="stat-val" style="font-size:0.95rem;">
+            <span id="e_uptime">--</span>
+          </div>
+        </div>
+
+        <!-- Acceso Remoto Cloudflare -->
+        <div class="stat-box" id="cfBox" style="grid-column: span 2; display:none">
+          <div class="stat-label">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span>Acceso Remoto (Cloudflare)</span>
+          </div>
+          <div class="stat-val" style="font-size:0.82rem; gap:8px">
+            <a id="cfUrl" href="#" target="_blank" style="color:#38bdf8;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1"></a>
+            <button onclick="copyCf()" class="sec sm" style="padding:4px 8px; flex-shrink:0" title="Copiar URL"><svg class="icon" style="width:13px;height:13px" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v3"/></svg> Copiar</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="actions-bar">
+        <button onclick="rescan()">
+          <svg id="scanIcon" class="icon" viewBox="0 0 24 24">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M3 21v-5h5"/>
+          </svg>
+          <span>Escanear Redes</span>
+        </button>
+
+        <button class="sec" onclick="cargarEstado()">
+          <svg class="icon" viewBox="0 0 24 24">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+          <span>Actualizar Estado</span>
+        </button>
+
+        <button class="sec" onclick="toggleGuardadas()">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/>
+            <polyline points="7 3 7 8 15 8"/>
+          </svg>
+          <span>Redes Guardadas</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Redes Guardadas (Expandible) -->
+    <div class="card" id="cajaGuardadas" style="display:none;">
+      <div class="card-header">
+        <div class="card-title">
+          <svg class="icon" style="color:var(--primary);" viewBox="0 0 24 24">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          </svg>
+          <span>Redes Guardadas (Autoconexión)</span>
+        </div>
+        <button class="sec sm" onclick="toggleGuardadas()">Cerrar</button>
+      </div>
+      <div id="listaGuardadas" class="network-list">
+        <div class="empty-state">Cargando redes guardadas...</div>
+      </div>
+    </div>
+
+    <!-- Redes Disponibles -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <svg class="icon" style="color:var(--primary);" viewBox="0 0 24 24">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>
+          </svg>
+          <span>Redes WiFi Cercanas</span>
+        </div>
+        <span class="card-badge" id="scanCount">0 detectadas</span>
+      </div>
+
+      <div id="listaRedes" class="network-list">
+        <div class="empty-state">
+          <svg class="icon spin" style="width:24px; height:24px; margin-bottom:8px; color:var(--primary);" viewBox="0 0 24 24">
+            <line x1="12" y1="2" x2="12" y2="6"/>
+            <line x1="12" y1="18" x2="12" y2="22"/>
+            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
+            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
+            <line x1="2" y1="12" x2="6" y2="12"/>
+            <line x1="18" y1="12" x2="22" y2="12"/>
+            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
+            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
+          </svg>
+          <p>Escaneando el entorno inalámbrico...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conexión Manual -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <svg class="icon" style="color:var(--primary);" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span>Conectar a Red Oculta o Manual</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="c_ssid">Nombre de la red (SSID)</label>
+        <div class="input-wrapper">
+          <input id="c_ssid" type="text" placeholder="Ej: MiWiFi_Casa">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="c_clave">Contraseña</label>
+        <div class="input-wrapper">
+          <input id="c_clave" type="password" placeholder="Dejar en blanco si la red es abierta">
+          <button type="button" class="input-icon-btn" onclick="togglePass('c_clave', this)" title="Ver contraseña">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end;">
+        <button onclick="conectarManual()">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M5 12h14"/>
+            <path d="M12 5l7 7-7 7"/>
+          </svg>
+          <span>Conectar a la red</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Connect Modal Dialog -->
+  <div id="connectModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="card-title">
+          <svg class="icon" style="color:var(--primary);" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <span>Conectar a WiFi</span>
+        </div>
+        <button class="sec sm" onclick="cerrarModal()">Cerrar</button>
+      </div>
+
+      <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:14px;">
+        Red: <strong id="modalSSID" style="color:#fff;">--</strong>
+      </p>
+
+      <div class="form-group">
+        <label class="form-label" for="modalClave">Contraseña</label>
+        <div class="input-wrapper">
+          <input id="modalClave" type="password" placeholder="Contraseña de la red (vacío si es abierta)">
+          <button type="button" class="input-icon-btn" onclick="togglePass('modalClave', this)" title="Ver contraseña">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="sec" onclick="cerrarModal()">Cancelar</button>
+        <button onclick="ejecutarConexionModal()">
+          <span>Conectar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast">
+    <div id="toastIcon">
+      <svg class="icon" viewBox="0 0 24 24">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>
+    </div>
+    <span id="toastMsg">Mensaje</span>
+  </div>
+
+  <script>
+    let activeSSID = '';
+    let currentModalSSID = '';
+
+    function showToast(text, isErr = false, isSuccess = false) {
+      const t = document.getElementById('toast');
+      const msg = document.getElementById('toastMsg');
+      msg.textContent = text;
+      t.className = isErr ? 'err' : (isSuccess ? 'success' : '');
+      t.style.display = 'flex';
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => { t.style.display = 'none'; }, 6000);
+    }
+
+    async function getJSON(url) {
+      const r = await fetch(url, { cache: 'no-store' });
+      return await r.json();
+    }
+
+    async function postJSON(url, data) {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const txt = await r.text();
+      try {
+        return JSON.parse(txt);
+      } catch (e) {
+        const err = new Error('La Raspberry Pi puede estar reiniciando su interfaz WiFi.');
+        err.respuesta = txt;
+        throw err;
+      }
+    }
+
+    // Render WiFi signal icon according to strength
+    function getSignalSVG(senal) {
+      const val = parseInt(senal) || 0;
+      let bars = 1;
+      if (val > 75) bars = 4;
+      else if (val > 50) bars = 3;
+      else if (val > 25) bars = 2;
+
+      return `
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0" opacity="${bars >= 3 ? '1' : '0.25'}"/>
+          <path d="M1.42 9a16 16 0 0 1 21.16 0" opacity="${bars >= 4 ? '1' : '0.25'}"/>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0" opacity="${bars >= 2 ? '1' : '0.25'}"/>
+          <path d="M12 20h.01" stroke-width="3"/>
+        </svg>
+      `;
+    }
+
+    function getSecuritySVG(sec) {
+      const isSecured = sec && sec !== '--' && sec !== '';
+      if (!isSecured) {
+        return `
+          <svg class="icon" style="color:#94a3b8;" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+          </svg>
+        `;
+      }
+      return `
+        <svg class="icon" style="color:var(--warning);" viewBox="0 0 24 24">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      `;
+    }
+
+    async function cargarEstado() {
+      try {
+        const d = await getJSON('/api/estado');
+        activeSSID = d.ssid_activo || '';
+
+        const e_ssid = document.getElementById('e_ssid');
+        e_ssid.textContent = activeSSID || 'Sin conexión';
+        e_ssid.title = activeSSID;
+
+        document.getElementById('e_ip').textContent = d.ip || '--';
+
+        const inetBadge = document.getElementById('e_inet_badge');
+        const inetVal = (d.internet || '').toLowerCase();
+        if (inetVal.includes('full') || inetVal.includes('yes') || inetVal === 'connected') {
+          inetBadge.textContent = 'Acceso Total';
+          inetBadge.className = 'pill online';
+        } else if (inetVal.includes('limited') || inetVal.includes('portal')) {
+          inetBadge.textContent = 'Limitado';
+          inetBadge.className = 'pill warning';
+        } else {
+          inetBadge.textContent = d.internet || 'Sin conexión';
+          inetBadge.className = 'pill offline';
+        }
+
+        const livePill = document.getElementById('livePill');
+        const txtNetworking = document.getElementById('txtNetworking');
+        const netVal = (d.estado_networking || '').toLowerCase();
+        if (netVal.includes('connected')) {
+          livePill.className = 'pill online';
+          txtNetworking.textContent = 'En línea';
+        } else {
+          livePill.className = 'pill offline';
+          txtNetworking.textContent = d.estado_networking || 'Desconectado';
+        }
+
+        if (d.ram && d.ram.total) {
+          const total = parseInt(d.ram.total) || 1;
+          const used = parseInt(d.ram.usada) || 0;
+          const pct = Math.round((used / total) * 100);
+          document.getElementById('e_ram_text').textContent = `${used} / ${total} MB`;
+          document.getElementById('e_ram_pct').textContent = `${pct}%`;
+          document.getElementById('e_ram_bar').style.width = `${pct}%`;
+        }
+
+        document.getElementById('e_uptime').textContent = d.uptime || '--';
+
+        const tempElem = document.getElementById('e_temp');
+        if (d.temp_cpu && d.temp_cpu !== '--') {
+          const tc = parseFloat(d.temp_cpu);
+          tempElem.textContent = `${tc} °C`;
+          tempElem.style.color = tc > 65 ? '#f87171' : (tc > 50 ? '#fbbf24' : '#34d399');
+        } else {
+          tempElem.textContent = '--';
+        }
+
+        const cfBox = document.getElementById('cfBox');
+        const cfA = document.getElementById('cfUrl');
+        if (d.cloudflare_url) {
+          cfA.textContent = d.cloudflare_url;
+          cfA.href = d.cloudflare_url;
+          cfBox.style.display = 'flex';
+        } else {
+          cfBox.style.display = 'none';
+        }
+
+      } catch (e) {
+        showToast('Error al cargar estado del sistema: ' + e.message, true);
+      }
+    }
+
+    async function escanear() {
+      const box = document.getElementById('listaRedes');
+      const scanIcon = document.getElementById('scanIcon');
+      if (scanIcon) scanIcon.classList.add('spin');
+
+      try {
+        const redes = await getJSON('/api/escanear');
+        if (scanIcon) scanIcon.classList.remove('spin');
+        document.getElementById('scanCount').textContent = `${redes.length} detectadas`;
+
+        if (!redes.length) {
+          box.innerHTML = '<div class="empty-state">No se detectaron redes WiFi en el alcance.</div>';
+          return;
+        }
+
+        box.innerHTML = '';
+        redes.forEach(r => {
+          const isActive = r.ssid === activeSSID;
+          const div = document.createElement('div');
+          div.className = `network-item ${isActive ? 'active-net' : ''}`;
+          
+          div.innerHTML = `
+            <div class="network-info">
+              <div class="signal-icon" title="Señal: ${r.senal || '0'}%">
+                ${getSignalSVG(r.senal)}
+              </div>
+              <div class="network-details">
+                <div class="network-name">
+                  <span>${esc(r.ssid)}</span>
+                  ${isActive ? '<span class="pill online" style="font-size:0.7rem;">Conectado</span>' : ''}
+                </div>
+                <div class="network-meta">
+                  <span>${getSecuritySVG(r.seguridad)}</span>
+                  <span>${r.seguridad || 'Abierta'}</span>
+                  <span>&bull;</span>
+                  <span>Señal ${r.senal || 0}%</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <button class="${isActive ? 'sec' : ''} sm" onclick="abrirConexion('${escJS(r.ssid)}')">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+                <span>${isActive ? 'Reconectar' : 'Conectar'}</span>
+              </button>
+            </div>
+          `;
+          box.appendChild(div);
+        });
+
+      } catch (e) {
+        if (scanIcon) scanIcon.classList.remove('spin');
+        box.innerHTML = `<div class="empty-state">Error al escanear: ${esc(e.message)}</div>`;
+      }
+    }
+
+    async function toggleGuardadas() {
+      const c = document.getElementById('cajaGuardadas');
+      const isHidden = c.style.display === 'none';
+      c.style.display = isHidden ? 'block' : 'none';
+      if (!isHidden) return;
+
+      const box = document.getElementById('listaGuardadas');
+      box.innerHTML = '<div class="empty-state">Cargando redes guardadas...</div>';
+
+      try {
+        const redes = await getJSON('/api/redes_guardadas');
+        if (!redes.length) {
+          box.innerHTML = '<div class="empty-state">No hay redes guardadas actualmente.</div>';
+          return;
+        }
+
+        box.innerHTML = '';
+        redes.forEach(n => {
+          const div = document.createElement('div');
+          div.className = 'network-item';
+          div.innerHTML = `
+            <div class="network-info">
+              <div class="signal-icon">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                </svg>
+              </div>
+              <div class="network-name">${esc(n)}</div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="sec sm" onclick="abrirConexion('${escJS(n)}')">
+                <span>Conectar</span>
+              </button>
+              <button class="danger sm" onclick="olvidarRed('${escJS(n)}')">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+                <span>Olvidar</span>
+              </button>
+            </div>
+          `;
+          box.appendChild(div);
+        });
+
+      } catch (e) {
+        box.innerHTML = `<div class="empty-state">Error: ${esc(e.message)}</div>`;
+      }
+    }
+
+    async function olvidarRed(nombre) {
+      if (!confirm(`¿Eliminar la red guardada "${nombre}"?`)) return;
+      try {
+        const res = await postJSON('/api/olvidar', { nombre: nombre });
+        showToast('Red eliminada: ' + (res.resultado || 'OK'), false, true);
+        toggleGuardadas();
+      } catch (e) {
+        showToast('Error al olvidar red: ' + e.message, true);
+      }
+    }
+
+    function abrirConexion(ssid) {
+      currentModalSSID = ssid;
+      document.getElementById('modalSSID').textContent = ssid;
+      document.getElementById('modalClave').value = '';
+      document.getElementById('connectModal').style.display = 'flex';
+      setTimeout(() => document.getElementById('modalClave').focus(), 100);
+    }
+
+    function cerrarModal() {
+      document.getElementById('connectModal').style.display = 'none';
+      currentModalSSID = '';
+    }
+
+    async function ejecutarConexionModal() {
+      const clave = document.getElementById('modalClave').value;
+      const ssid = currentModalSSID;
+      cerrarModal();
+
+      showToast(`Conectando a "${ssid}"...`, false, false);
+      try {
+        const d = await postJSON('/api/conectar', { ssid: ssid, clave: clave });
+        showToast(`Resultado: ${d.resultado || 'Conexión enviada'}`, false, true);
+        setTimeout(cargarEstado, 2000);
+      } catch (e) {
+        showToast(`Enviada solicitud a "${ssid}". Si cambió la IP, reconéctese por Cloudflare/IP nueva.`, true);
+      }
+    }
+
+    async function conectarManual() {
+      const ssid = document.getElementById('c_ssid').value.trim();
+      const clave = document.getElementById('c_clave').value;
+      if (!ssid) {
+        showToast('Ingrese el nombre de la red (SSID)', true);
+        return;
+      }
+      showToast(`Conectando a "${ssid}"...`, false, false);
+      try {
+        const d = await postJSON('/api/conectar', { ssid: ssid, clave: clave });
+        showToast(`Resultado: ${d.resultado || 'Conexión enviada'}`, false, true);
+        setTimeout(cargarEstado, 2000);
+      } catch (e) {
+        showToast(`La Raspberry Pi se está conectando a "${ssid}". Si se interrumpió la red, reconéctese.`, true);
+      }
+    }
+
+    function copiarIP() {
+      const ip = document.getElementById('e_ip').textContent;
+      if (!ip || ip === '--') return;
+      navigator.clipboard.writeText(ip).then(() => {
+        showToast('Dirección IP copiada al portapapeles: ' + ip, false, true);
+      });
+    }
+
+    function copyCf() {
+      const url = document.getElementById('cfUrl').textContent;
+      if (!url) return;
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('URL remota copiada: ' + url, false, true);
+      });
+    }
+
+    function togglePass(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const isPass = input.type === 'password';
+      input.type = isPass ? 'text' : 'password';
+    }
+
+    function esc(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function escJS(s) {
+      return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+
+    function rescan() {
+      escanear();
+      cargarEstado();
+    }
+
+    // Initialize
+    cargarEstado();
+    escanear();
+    setInterval(cargarEstado, 5000);
+  </script>
+</body>
+</html>

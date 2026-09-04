@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clase 4 – Bloque 1: struct Sensor</title>
+</head>
+<body>
+
+<div style="font-family: Arial, sans-serif; max-width: 900px; margin: auto; color:#333; line-height:1.7;">
+
+    <div style="background: linear-gradient(135deg,#0f172a,#0891b2); color:white; padding:25px; border-radius:12px; margin-bottom:25px;">
+        <h1 style="margin:0 0 8px 0; color: #fff;"> Bloque 1 – struct Sensor: Agrupar datos del sensor</h1>
+        <p style="margin:0; opacity:0.85;">De variables sueltas a estructura organizada</p>
+    </div>
+
+     <div style="background:#ecfeff; padding:12px 16px; border-radius:8px; border-left:4px solid #06b6d4; margin-bottom:15px;">
+        <b>🔗 Conexión con clases 1-3:</b> En Clase 1 creaste <code>float temp, hum</code> sueltas. En Clase 2 les pusiste alertas con <code>if/switch</code>. En Clase 3 las leíste en bucle con <code>for + millis()</code>. Hoy las <b>agrupamos</b> en un solo tipo.
+    </div>
+
+    <div style="background:#fff; padding:25px; border-radius:12px; border:1px solid #ddd; margin-bottom:25px;">
+        <h2 style="margin-top:0;">1. ¿Por qué struct en la estación?</h2>
+        <p>Hasta ahora teníamos variables sueltas (mismo problema que en Clase 1):</p>
+        <pre style="background:#0f172a; color:#e5e7eb; padding:16px; border-radius:10px;">
+// ANTES: variables sueltas (difícil de escalar) - Clase 1 y 3
+int pin_dht11 = 2;
+float temp_dht11 = 24.5;
+float hum_dht11 = 62.0;
+int pin_lm35 = A0;
+float temp_lm35 = 25.1;
+int pin_ldr = A1;
+int luz_ldr = 734;
+// ... y así para cada sensor</pre>
+        <p>Con <code>struct</code> agrupamos TODO lo que define un sensor (pin + valor + umbrales de Clase 2):</p>
+        <pre style="background:#0f172a; color:#e5e7eb; padding:16px; border-radius:10px;">
+#include <stdio.h>
+#include <string.h>
+
+// Definición del struct (fuera de main, global)
+typedef enum {
+    TIPO_DIGITAL = 0,   // DHT11, RTC
+    TIPO_ANALOGICO = 1  // LM35, LDR, Water
+} TipoSensor;
+
+typedef struct {
+    char nombre[20];        // "DHT11", "LM35", "LDR", "LLUVIA"
+    uint8_t pin;            // Pin Arduino (0-255)
+    TipoSensor tipo;        // DIGITAL o ANALOGICO
+    float valor;            // Última lectura
+    float umbral_alerta;    // Umbral para alerta
+    bool activo;            // Si el sensor está habilitado
+    float offset_calibracion; // Corrección (ej: +0.3°C)
+} Sensor;
+
+// Ejemplo de inicialización
+Sensor dht11 = {
+    .nombre = "DHT11_TEMP",
+    .pin = 2,
+    .tipo = TIPO_DIGITAL,
+    .valor = 0.0,
+    .umbral_alerta = 30.0,
+    .activo = true,
+    .offset_calibracion = 0.0
+};</pre>
+
+        <div style="background:#fefce8; border-left:4px solid #eab308; padding:12px 16px; border-radius:6px; margin:15px 0;">
+            <b>💡 typedef enum:</b> Nombres legibles (<code>TIPO_DIGITAL</code>) en vez de números mágicos. <code>uint8_t</code> para pin (1 byte, 0-255).
+        </div>
+    </div>
+
+    <div style="background:#fefce8; border-left:4px solid #eab308; padding:12px 16px; border-radius:6px; margin:15px 0;">
+        <b>💡 En Arduino (.ino) es idéntico:</b> <code>struct</code> funciona igual en C y en Arduino C++. Pegá este mismo código en tu sketch de Clase 3 y compila.
+    </div>
+
+    <div style="background:#fff; padding:25px; border-radius:12px; border:1px solid #ddd; margin-bottom:25px;">
+        <h2 style="margin-top:0;">2. Inicializar array de sensores (configuración centralizada)</h2>
+        <p>Todos los sensores en un solo array: fácil de recorrer con <code>for</code> (Clase 3), fácil de agregar/quitar:</p>
+
+        <pre style="background:#0f172a; color:#e5e7eb; padding:16px; border-radius:10px;">
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_SENSORES 6
+
+typedef enum { TIPO_DIGITAL=0, TIPO_ANALOGICO=1 } TipoSensor;
+
+typedef struct {
+    char nombre[20];
+    uint8_t pin;
+    TipoSensor tipo;
+    float valor;
+    float umbral_alerta;
+    float umbral_critico;
+    bool activo;
+    float offset;
+} Sensor;
+
+int main() {
+    // Array de sensores: TODA la configuración en UN lugar
+    Sensor sensores[MAX_SENSORES] = {
+        { .nombre="DHT11_TEMP", .pin=2, .tipo=TIPO_DIGITAL, .valor=0, .umbral_alerta=30, .umbral_critico=35, .activo=true, .offset=0 },
+        { .nombre="DHT11_HUM",  .pin=2, .tipo=TIPO_DIGITAL, .valor=0, .umbral_alerta=80, .umbral_critico=90, .activo=true, .offset=0 },
+        { .nombre="LM35",       .pin=A0, .tipo=TIPO_ANALOGICO, .valor=0, .umbral_alerta=30, .umbral_critico=35, .activo=true, .offset=0.3 },
+        { .nombre="LDR",        .pin=A1, .tipo=TIPO_ANALOGICO, .valor=0, .umbral_alerta=200, .umbral_critico=100, .activo=true, .offset=0 },
+        { .nombre="LLUVIA",     .pin=A2, .tipo=TIPO_ANALOGICO, .valor=0, .umbral_alerta=500, .umbral_critico=800, .activo=true, .offset=0 },
+        { .nombre="RTC",        .pin=5, .tipo=TIPO_DIGITAL, .valor=0, .umbral_alerta=0, .umbral_critico=0, .activo=true, .offset=0 }
+    };
+
+    int total = 6;
+
+    printf("=== ESTACIÓN METEOROLÓGICA - SENSORES CONFIGURADOS ===\n\n");
+    for (int i = 0; i < total; i++) {
+        if (sensores[i].activo) {
+            printf("%2d. %-12s | Pin %2d | %s | Alerta: %.1f | Offset: %.2f\n",
+                   i+1, sensores[i].nombre, sensores[i].pin,
+                   sensores[i].tipo == TIPO_DIGITAL ? "DIGITAL " : "ANALOGICO",
+                   sensores[i].umbral_alerta, sensores[i].offset);
+        }
+    }
+
+    return 0;
+}</pre>
+
+        <div style="background:#ecfeff; border-left:4px solid #06b6d4; padding:12px 16px; border-radius:6px; margin:15px 0;">
+            <b>Salida:</b>
+            <pre style="background:#1e293b; color:#e5e7eb; padding:12px; border-radius:8px; margin:8px 0;">
+=== ESTACIÓN METEOROLÓGICA - SENSORES CONFIGURADOS ===
+
+ 1. DHT11_TEMP   | Pin  2 | DIGITAL   | Alerta: 30.0 | Offset: 0.00
+ 2. DHT11_HUM    | Pin  2 | DIGITAL   | Alerta: 80.0 | Offset: 0.00
+ 3. LM35         | Pin 14 | ANALOGICO | Alerta: 30.0 | Offset: 0.30
+ 4. LDR          | Pin 15 | ANALOGICO | Alerta: 200.0 | Offset: 0.00
+ 5. LLUVIA       | Pin 16 | ANALOGICO | Alerta: 500.0 | Offset: 0.00
+ 6. RTC          | Pin  5 | DIGITAL   | Alerta: 0.0  | Offset: 0.00</pre>
+        </div>
+    </div>
+
+    <div style="background:#fff; padding:25px; border-radius:12px; border:1px solid #ddd; margin-bottom:25px;">
+        <h2 style="margin-top:0;">3. Funciones que operan sobre Sensor (paso por VALOR - copia)</h2>
+        <p>Si pasamos el struct por valor, la función recibe una <b>copia</b>. Los cambios NO afectan el original:</p>
+
+        <pre style="background:#0f172a; color:#e5e7eb; padding:16px; border-radius:10px;">
+#include <stdio.h>
+
+typedef struct {
+    char nombre[20];
+    float valor;
+    float offset;
+} Sensor;
+
+// Paso por VALOR: recibe COPIA
+void aplicar_offset_valor(Sensor s) {
+    s.valor += s.offset;  // Modifica la copia
+    printf("  Dentro: %s = %.2f (offset aplicado)\n", s.nombre, s.valor);
+}
+
+int main() {
+    Sensor lm35 = { .nombre="LM35", .valor=25.0, .offset=0.3 };
+
+    printf("Antes: %s = %.1f\n", lm35.nombre, lm35.valor);  // 25.0
+    aplicar_offset_valor(lm35);                              // Copia
+    printf("Después: %s = %.1f\n", lm35.valor);              // 25.0 ← NO CAMBIÓ!
+
+    return 0;
+}</pre>
+
+        <div style="background:#fef2f2; border-left:4px solid #ef4444; padding:12px 16px; border-radius:6px; margin:15px 0;">
+            <b>⚠️ Problema:</b> Pasar struct por valor copia TODOS los bytes (lento, gasta stack). En embebidos con structs grandes = malo. Y no modifica el original.
+        </div>
+    </div>
+
+    <div style="background:#fff; padding:15px; border-radius:8px; border:1px solid #bbf7d0; margin-bottom:15px;">
+        <b>🧪 Práctica de laboratorio (20 min):</b> Cargá el array de 6 sensores en tu Arduino (sin leer aún). Imprimí por <code>Serial 9600</code> la tabla de configuración como en el ejemplo. Verificá que compila en Arduino IDE (mismo código que en <code>gcc</code>).
+    </div>
+
+    <div style="background:#0f172a; color:white; padding:25px; border-radius:12px;">
+        <h2 style="margin-top:0; color:#22d3ee;"> Resumen Bloque 1</h2>
+        <ul style="margin:0;">
+            <li><code>struct Sensor</code> agrupa: nombre, pin, tipo, valor, umbrales, offset, activo (junta variables de Clase 1 + umbrales de Clase 2)</li>
+            <li><code>typedef enum</code> para tipos legibles (<code>TIPO_DIGITAL</code>, <code>TIPO_ANALOGICO</code>)</li>
+            <li>Array <code>Sensor sensores[]</code> = configuración centralizada, se recorre con <code>for</code> de Clase 3</li>
+            <li>Paso por <b>valor</b> = copia, no modifica original, gasta memoria (2KB RAM en Uno)</li>
+            <li><b>Siguiente:</b> Punteros → paso por referencia, modifica original, eficiente. Lo usaremos en <code>leer_sensor(&s)</code> real con DHT11.</li>
+        </ul>
+    </div>
+
+</div>
+
+</body>
+</html>

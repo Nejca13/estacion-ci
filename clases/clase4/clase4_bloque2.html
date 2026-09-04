@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clase 4 – Bloque 2: Punteros y paso por referencia</title>
+</head>
+<body>
+
+<div style="font-family: Arial, sans-serif; max-width: 900px; margin: auto; color:#333; line-height:1.7;">
+
+    <div style="background: linear-gradient(135deg,#0f172a,#0891b2); color:white; padding:25px; border-radius:12px; margin-bottom:25px;">
+        <h1 style="margin:0 0 8px 0; color: #fff;"> Bloque 2 – Punteros: &, *, paso por referencia</h1>
+        <p style="margin:0; opacity:0.85;">Modificar sensores sin copiar, funciones que cambian el original</p>
+    </div>
+
+    <div style="background:#fff; padding:25px; border-radius:12px; border:1px solid #ddd; margin-bottom:25px;">
+        <h2 style="margin-top:0;">1. Punteros: dirección y valor</h2>
+        <p>Un <b>puntero</b> es una variable que guarda la <b>dirección de memoria</b> de otra variable. En embebidos es esencial: permite modificar el original sin copiar, y acceder a hardware (registros).</p>
+
+        <pre style="background:#0f172a; color:#e5e7eb; padding:16px; border-radius:10px;">
+#include <stdio.h>
+
+int main() {
+    float temp = 24.5;
+    float *ptr = &temp;   // & = "dirección de" → ptr guarda dónde está temp
+
+    printf("temp  = %.1f\n", temp);       // 24.5
+    printf("&temp = %p\n", (void*)&temp); // dirección en hex (ej: 0x7ffd...)
+    printf("ptr   = %p\n", (void*)ptr);   // misma dirección
+    printf("*ptr  = %.1f\n", *ptr);        // 24.5  → * = "valor en esa dirección"
+
+    // Modificar vía puntero
+    *ptr = 30.0;
+    printf("temp ahora = %.1f\n", temp);   // 30.0 ← CAMBIÓ!
+
+    return 0;
+}</pre>
+
+        <table style="width:100%; border-collapse:collapse; margin:15px 0;">
+            <thead>
+                <tr style="background:#0f172a; color:white;">
+                    <th style="padding:8px; text-align:left;">Operador</th>
+                    <th style="padding:8px; text-align:left;">Nombre</th>
+                    <th style="padding:8px; text-align:left;">Ejemplo</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="background:#f8fafc;"><td style="padding:8px; border:1px solid #ddd;"><code>&</code></td><td style="padding:8px; border:1px solid #ddd;">Dirección de</td><td style="padding:8px; border:1px solid #ddd;"><code>ptr = &temp</code></td></tr>
+                <tr><td style="padding:8px; border:1px solid #ddd;"><code>*</code></td><td style="padding:8px; border:1px solid #ddd;">Desreferenciar (valor en)</td><td style="padding:8px; border:1px solid #ddd;"><code>val = *ptr</code></td></tr>
+                <tr style="background:#f8fafc;"><td style="padding:8px; border:1px solid #ddd;"><code>-></code></td><td style="padding:8px; border:1px solid #ddd;">Miembro vía puntero</td><td style="padding:8px; border:1px solid #ddd;"><code>ptr->valor</code> = <code>(*ptr).valor</code></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div style="background:#fff; padding:25px; border-radius:12px; border:1px solid #ddd; margin-bottom:25px;">
+        <h2 style="margin-top:0;">2. Paso por referencia: funciones que MODIFICAN el sensor</h2>
+        <p>En lugar de pasar el struct (copia), pasamos su <b>dirección</b> (<code>Sensor*</code>). La función recibe la dirección y usa <code>-></code> para modificar el original:</p>
+
+        <pre style="background:#0f172a; color:#e5e7eb; padding:16px; border-radius:10px;">
+#include <stdio.h>
+#include <string.h>
+
+typedef struct {
+    char nombre[20];
+    float valor;
+    float offset;
+    bool activo;
+} Sensor;
+
+// Paso por REFERENCIA: recibe DIRECCIÓN (Sensor*)
+void aplicar_offset(Sensor *s) {
+    if (!s->activo) return;          // -> = (*s).activo
+    s->valor += s->offset;           // Modifica EL ORIGINAL
+    printf("  [FUNCIÓN] %s: %.2f + %.2f = %.2f\n", s->nombre, s->valor - s->offset, s->offset, s->valor);
+}
+
+void activar_sensor(Sensor *s) {
+    s->activo = true;
+}
+
+void desactivar_sensor(Sensor *s) {
+    s->activo = false;
+}
+
+int main() {
+    Sensor lm35 = { .nombre="LM35", .valor=25.0, .offset=0.3, .activo=true };
+
+    printf("Antes: %s = %.1f (activo=%d)\n", lm35.nombre, lm35.valor, lm35.activo);
+
+    // Pasamos DIRECCIÓN con &
+    aplicar_offset(&lm35);           // & = dirección de lm35
+
+    printf("Después: %s = %.1f\n", lm35.nombre, lm35.valor);  // 25.3 ← CAMBIÓ!
+
+    // Desactivar
+    desactivar_sensor(&lm35);
+    printf("Activo: %d\n", lm35.activo);  // 0
+
+    return 0;
+}</pre>
+
+        <div style="background:#ecfeff; border-left:4px solid #06b6d4; padding:12px 16px; border-radius:6px; margin:15px 0;">
+            <b>Regla de oro:</b> <code>&variable</code> al llamar, <code>Tipo* parametro</code> en la función, <code>ptr->campo</code> dentro. <b>Siempre pasar structs por puntero</b> en embebidos.
+        </div>
+    </div>
+
+    <div style="background:#ecfeff; padding:12px 16px; border-radius:8px; border-left:4px solid #06b6d4; margin-bottom:15px;">
+        <b>🔗 Repaso:</b> Clase 2 te enseñó <code>if/switch</code> para alertas, Clase 3 <code>isnan()</code> + <code>millis()</code> para leer sin bloquear. Ahora todo eso vive <b>dentro</b> de la función que recibe <code>Sensor*</code>.
+    </div>
+
+    <div style="background:#fff; padding:25px; border-radius:12px; border:1px solid #ddd; margin-bottom:25px;">
+        <h2 style="margin-top:0;">3. Funciones clave para la estación (todas por referencia) — versión Arduino real</h2>
+        <p>Compila tanto en <b>Arduino IDE</b> (.ino) como en PC con <code>gcc</code> (con <code>#define SIMULACION</code>).</p>
+
+        <h3>Leer sensor y guardar en struct (Arduino real + simulación)</h3>
+        <pre style="background:#0f172a; color:#e5e7eb; padding:16px; border-radius:10px;">
+#include &lt;DHT.h&gt;
+#define DHT_PIN 2
+#define DHT_TYPE DHT11
+DHT dht(DHT_PIN, DHT_TYPE);
+
+// #define SIMULACION  // ← descomentar si compiles en PC sin placa
+
+void leer_sensor(Sensor *s) {
+    if (!s->activo) return;
+
+    if (s->tipo == TIPO_ANALOGICO) {
+#ifdef SIMULACION
+        int raw = 400 + rand() % 300;  // PC sin hardware
+#else
+        int raw = analogRead(s->pin);   // Arduino real: LM35(A0), LDR(A1)
+#endif
+        if (strcmp(s->nombre, "LM35") == 0) {
+            s->valor = (raw * 5.0 / 1023.0) * 100.0 + s->offset;  // °C (Clase 1 fórmula)
+        } else {
+            s->valor = raw;  // LDR/LLUVIA: 0-1023
+        }
+    } else { // DIGITAL
+        if (strcmp(s->nombre, "DHT11_TEMP") == 0) {
+#ifdef SIMULACION
+            s->valor = 24.5;
+#else
+            float t = dht.readTemperature();
+            s->valor = isnan(t) ? s->valor : t; // mantiene último si falla (Clase 3)
+#endif
+        } else if (strcmp(s->nombre, "DHT11_HUM") == 0) {
+#ifdef SIMULACION
+            s->valor = 62.0;
+#else
+            float h = dht.readHumidity();
+            s->valor = isnan(h) ? s->valor : h;
+#endif
+        }
+    }
+#ifdef SIMULACION
+    printf("  [LECTURA] %s: %.1f\n", s->nombre, s->valor);
+#else
+    Serial.print("  [LECTURA] "); Serial.print(s->nombre); Serial.print(": "); Serial.println(s->valor,1);
+#endif
+}</pre>
+
+        <h3>Aplicar calibración (offset) — mismo en PC y Arduino</h3>
+        <pre style="background:#0f172a; color:#e5e7eb; padding:16px; border-radius:10px;">
+void calibrar(Sensor *s) {
+    if (s->offset != 0.0) {
+        s->valor += s->offset;
+#ifdef SIMULACION
+        printf("  [CAL] %s: offset %.2f → %.2f\n", s->nombre, s->offset, s->valor);
+#else
+        Serial.print("  [CAL] "); Serial.print(s->nombre); Serial.println(s->valor,1);
+#endif
+    }
+}</pre>
+
+        <h3>Verificar alertas (reusa if de Clase 2 + LEDs Arduino)</h3>
+        <pre style="background:#0f172a; color:#e5e7eb; padding:16px; border-radius:10px;">
+void verificar_alertas(Sensor *s) {
+    if (!s->activo) return;
+    bool critico = s->valor > s->umbral_critico;
+    bool alerta  = s->valor > s->umbral_alerta;
+
+    if (strcmp(s->nombre, "LLUVIA") == 0 && alerta) {
+#ifdef SIMULACION
+        printf("  🌧️ ALERTA %s: LLUVIA (%.0f)\n", s->nombre, s->valor);
+#else
+        Serial.print("🌧️ LLUVIA "); Serial.println(s->valor,0);
+        digitalWrite(10, HIGH); // LED lluvia
+#endif
+    } else if (critico) {
+#ifdef SIMULACION
+        printf("  🔴 CRÍTICO %s: %.1f > %.1f\n", s->nombre, s->valor, s->umbral_critico);
+#else
+        digitalWrite(8, HIGH); // LED rojo - lógica Clase 2
+#endif
+    } else if (alerta) {
+#ifdef SIMULACION
+        printf("  🟠 ALERTA %s: %.1f > %.1f\n", s->nombre, s->valor, s->umbral_alerta);
+#else
+        digitalWrite(9, HIGH); // LED naranja
+#endif
+    }
+}</pre>
+
+        <h3>Programa principal: leer TODOS los sensores (for de Clase 3 + punteros de hoy)</h3>
+        <pre style="background:#0f172a; color:#e5e7eb; padding:16px; border-radius:10px;">
+// En Arduino: esto va en loop() con millis() (ver Bloque 3). En PC: en main()
+int total = 6;
+
+void ciclo_completo(Sensor sensores[], int n){
+    for (int i = 0; i < n; i++) {
+        if (!sensores[i].activo) continue;
+        leer_sensor(&sensores[i]);      // & = paso por referencia (hoy)
+        // calibrar ya dentro de leer_sensor para LM35, o llamar calibrar(&sensores[i]);
+        verificar_alertas(&sensores[i]); // if anidados de Clase 2
+    }
+    // Enviar resumen CSV al dashboard de Clase 3 por Serial 9600
+    for (int i = 0; i < n; i++) if(sensores[i].activo){
+#ifdef SIMULACION
+        printf("%-12s: %6.1f", sensores[i].nombre, sensores[i].valor);
+        if (sensores[i].valor > sensores[i].umbral_alerta) printf(" ⚠️");
+        printf("\n");
+#else
+        Serial.print(sensores[i].nombre); Serial.print(","); Serial.println(sensores[i].valor,1);
+#endif
+    }
+}
+
+#ifdef SIMULACION
+int main(){ Sensor sensores[6]={/* Bloque1 */}; ciclo_completo(sensores,6); return 0;}
+#else
+// Arduino:
+void setup(){ Serial.begin(9600); dht.begin(); }
+void loop(){ static Sensor sensores[6]={/* Bloque1 */}; ciclo_completo(sensores,6); delay(2000);} // luego con millis()
+#endif
+</pre>
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:12px 16px; border-radius:6px; margin:15px 0;">
+            <b>🧪 Práctica (25 min):</b> Modificá <code>offset</code> del LM35 a 0.3 y comprobá que <code>calibrar(&lm35)</code> suma solo vía puntero (el original cambia, la copia no). Probá <code>desactivar_sensor(&ldr)</code> y verificá que <code>leer_todos</code> lo salta con <code>continue</code> (Clase 3).
+        </div>
+    </div>
+
+    <div style="background:#0f172a; color:white; padding:25px; border-radius:12px;">
+        <h2 style="margin-top:0; color:#22d3ee;"> Resumen Bloque 2</h2>
+        <ul style="margin:0;">
+            <li><code>&var</code> = dirección, <code>*ptr</code> = valor, <code>ptr->campo</code> = miembro vía puntero</li>
+            <li>Funciones que modifican struct: <code>void func(Tipo* ptr)</code> + <code>&variable</code> al llamar</li>
+            <li><code>ptr->campo</code> es azúcar para <code>(*ptr).campo</code></li>
+            <li>En embebidos: <b>siempre pasar structs por puntero</b> (eficiente, modifica original)</li>
+            <li><b>Siguiente:</b> Array de sensores + funciones que recorren todo + menú dinámico</li>
+        </ul>
+    </div>
+
+</div>
+
+</body>
+</html>
