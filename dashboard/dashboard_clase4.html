@@ -14,8 +14,9 @@
     .brand{display:flex;gap:14px;align-items:center}
     .brand-icon{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg, rgba(56,189,248,0.2), rgba(249,115,22,0.2));border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center}
     .badge{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;font-size:.8rem;font-weight:600;background:rgba(16,185,129,0.12);color:#34d399;border:1px solid rgba(16,185,129,0.25)}
-    .badge.err{background:rgba(244,63,94,0.12);color:#fb7185;border-color:rgba(244,63,94,0.25)}
-    .nav{padding:8px 14px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid var(--b);color:#f8fafc;text-decoration:none;font-weight:600;font-size:.85rem}
+    .nav{padding:8px 14px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid var(--b);color:#f8fafc;text-decoration:none;font-weight:600;font-size:.85rem;transition:all .2s ease}
+    .nav:hover{background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.2)}
+    .nav.active{background:rgba(56,189,248,0.18);border-color:rgba(56,189,248,0.45);color:#38bdf8}
     .grid{ display:grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap:16px }
     .card{background:var(--sur);border:1px solid var(--b);border-radius:var(--r);padding:22px;position:relative;overflow:hidden}
     .card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
@@ -54,10 +55,11 @@
     <div class="brand-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16"/></svg></div>
     <div><h1 style="font-size:1.2rem">Clase 4 – Estación Completa</h1><p style="font-size:.82rem;color:var(--muted)">Struct Sensor + Punteros + Array · DHT11 + LDR + Agua + Actuadores</p></div>
   </div>
-  <div style="display:flex;gap:10px;align-items:center">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <div id="conn" class="badge"><span style="width:7px;height:7px;background:currentColor;border-radius:50%;box-shadow:0 0 8px currentColor"></span> <span id="connTxt">Conectando</span></div>
-    <a class="nav" href="/">← Inicio</a>
+    <a class="nav" href="/">Inicio</a>
     <a class="nav" href="/clase3">Clase 3</a>
+    <a class="nav active" href="/clase4">Clase 4</a>
     <a class="nav" href="/panel">Panel</a>
   </div>
 </header>
@@ -103,6 +105,22 @@
 <div style="background:rgba(255,255,255,0.04);border:1px solid var(--b);border-radius:12px;padding:14px;font-size:.85rem;color:var(--muted)">
   <b>Arduino Clase 4 (.ino)</b> — Envía por Serial 9600: <code>temp,hum,luz,agua</code> (ej: <code>24.5,62,734,120</code>) compatible con Clase 3 (primeros dos valores) + <code>struct Sensor + leer_todos(&s)</code>. Comandos que entiende: <code>LED_ON/LED_OFF/RELAY_ON/RELAY_OFF/FAN_0..255/FAN_AUTO</code>.
 </div>
+
+<footer style="padding: 16px 8px; text-align: center; border-top: 1px solid var(--b); color: var(--dim); font-size: 0.78rem; display: flex; flex-direction: column; gap: 8px;">
+  <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+    <a href="/" style="color: var(--muted); text-decoration: none;">/ (Inicio)</a>
+    <span>&middot;</span>
+    <a href="/clase3" style="color: var(--muted); text-decoration: none;">/clase3 (Clase 3)</a>
+    <span>&middot;</span>
+    <a href="/clase4" style="color: #38bdf8; text-decoration: none; font-weight: 600;">/clase4 (Clase 4)</a>
+    <span>&middot;</span>
+    <a href="/panel" style="color: var(--muted); text-decoration: none;">/panel (Red WiFi)</a>
+    <span>&middot;</span>
+    <a href="/api/clase4/datos" style="color: var(--muted); text-decoration: none;">/api/clase4/datos (JSON)</a>
+  </div>
+  <div>CEAER — Centro de Especialización en Asuntos Económicos Regionales &middot; Nodo IoT Pi Zero W v1</div>
+</footer>
+
 </div>
 <script>
 const $ = id => document.getElementById(id);

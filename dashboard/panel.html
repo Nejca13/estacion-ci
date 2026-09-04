@@ -126,6 +126,12 @@
       border-color: rgba(255, 255, 255, 0.2);
     }
 
+    .nav-link.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #38bdf8;
+    }
+
     /* Cards */
     .card {
       background: var(--bg-surface);
@@ -560,12 +566,12 @@
         </div>
       </div>
 
-      <a href="/" class="nav-link">
-        <svg class="icon" viewBox="0 0 24 24">
-          <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
-        </svg>
-        <span>Ver Dashboard</span>
-      </a>
+      <nav style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+        <a href="/" class="nav-link">Inicio</a>
+        <a href="/clase3" class="nav-link">Clase 3</a>
+        <a href="/clase4" class="nav-link">Clase 4</a>
+        <a href="/panel" class="nav-link active">Panel</a>
+      </nav>
     </header>
 
     <!-- Estado del Sistema y Red -->
@@ -814,6 +820,22 @@
         </button>
       </div>
     </div>
+
+    <!-- Footer Informativo -->
+    <footer style="margin-top: 12px; padding: 20px 8px; text-align: center; border-top: 1px solid var(--border-subtle); color: var(--text-dim); font-size: 0.78rem; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+        <a href="/" style="color: var(--text-muted); text-decoration: none;">/ (Inicio)</a>
+        <span>&middot;</span>
+        <a href="/clase3" style="color: var(--text-muted); text-decoration: none;">/clase3 (Clase 3)</a>
+        <span>&middot;</span>
+        <a href="/clase4" style="color: var(--text-muted); text-decoration: none;">/clase4 (Clase 4)</a>
+        <span>&middot;</span>
+        <a href="/panel" style="color: #38bdf8; text-decoration: none; font-weight: 600;">/panel (Red WiFi)</a>
+        <span>&middot;</span>
+        <a href="/api/estado" style="color: var(--text-muted); text-decoration: none;">/api/estado (Métricas Pi)</a>
+      </div>
+      <div>CEAER — Centro de Especialización en Asuntos Económicos Regionales &middot; Nodo IoT Pi Zero W v1</div>
+    </footer>
 
   </div>
 

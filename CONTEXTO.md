@@ -2,7 +2,7 @@
 
 ## Resumen ejecutivo
 
-Materia: Programación en C/C++ — Tecnicatura IoT CEAER. Clases 1-3 ya dadas, lunes es Clase 4. Se pidió que Clase 4 cuadre con 1-3 y que tenga más práctica Arduino con estación meteorológica.
+Materia: Programación en C/C++ — Tecnicatura IoT CEAER (Centro de Especialización en Asuntos Económicos Regionales). Clases 1-3 ya dadas, lunes es Clase 4. Se pidió que Clase 4 cuadre con 1-3 y que tenga más práctica Arduino con estación meteorológica.
 
 ## Estado de clases
 

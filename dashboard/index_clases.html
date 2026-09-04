@@ -166,6 +166,12 @@
       color: #fff;
     }
 
+    .btn-nav.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #38bdf8;
+    }
+
     /* Live Telemetry Strip */
     .telemetry-strip {
       background: var(--surface);
@@ -496,7 +502,12 @@
         <span class="pulse-dot"></span>
         <span id="statusText">CONECTANDO</span>
       </div>
-      <a class="btn-nav" href="/panel">PANEL DE RED</a>
+      <nav style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+        <a class="btn-nav active" href="/">INICIO</a>
+        <a class="btn-nav" href="/clase3">CLASE 3</a>
+        <a class="btn-nav" href="/clase4">CLASE 4</a>
+        <a class="btn-nav" href="/panel">PANEL</a>
+      </nav>
     </div>
   </header>
 
@@ -609,7 +620,7 @@
       <a href="/api/estado">/api/estado (Métricas Pi)</a>
     </div>
     <div class="footer-copy">
-      CEAER — Centro de Educación Agropecuaria y Estudios Regionales &middot; Nodo IoT Pi Zero W v1
+      CEAER — Centro de Especialización en Asuntos Económicos Regionales &middot; Nodo IoT Pi Zero W v1
     </div>
   </footer>
 
