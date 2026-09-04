@@ -31,9 +31,10 @@ jobs:
             exit 1
           fi
           echo "Esperando reinicio..."
-          sleep 6
-          curl -s "$PI_URL/" | grep -q "CEAER" && echo "OK index" || exit 1
-          curl -s "$PI_URL/clase4" | grep -q "Clase 4" && echo "OK clase4" || exit 1
+          for i in 1 2 3 4 5; do sleep 5; echo "Intento $i/5"; curl -s "$PI_URL/" | grep -q "CEAER" && echo "OK index" && break; done
+          curl -s "$PI_URL/" | grep -q "CEAER" && echo "OK index final" || exit 1
+          for i in 1 2 3; do curl -s "$PI_URL/clase4" | grep -q "Clase 4" && echo "OK clase4" && break; sleep 3; done
+          curl -s "$PI_URL/clase4" | grep -q "Clase 4" && echo "OK clase4 final" || exit 1
       - name: Lint
         run: |
           python3 -m py_compile dashboard/servidor_datos.py
