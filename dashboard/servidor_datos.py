@@ -220,11 +220,13 @@ class Handler(BaseHTTPRequestHandler):
                 except: pass
             if not token_ok:
                 self._json({"error":"unauthorized - token invalido"},401); return
-            # Ejecuta git pull en /home/nico/estacion-ci y copia dashboards (sin restart, lo hace el workflow vía SSH tailnet)
+            # Ejecuta git fetch + reset en /home/nico/estacion-ci y copia dashboards (sin restart, lo hace el workflow vía SSH tailnet)
             log=[]
             try:
-                r=subprocess.run(["git","-C","/home/nico/estacion-ci","pull"], capture_output=True, text=True, timeout=30)
-                log.append("git pull: "+(r.stdout.strip() or r.stderr.strip()))
+                r=subprocess.run(["git","-C","/home/nico/estacion-ci","fetch"], capture_output=True, text=True, timeout=20)
+                log.append("git fetch: "+(r.stdout.strip() or r.stderr.strip() or "ok"))
+                r=subprocess.run(["git","-C","/home/nico/estacion-ci","reset","--hard","origin/main"], capture_output=True, text=True, timeout=20)
+                log.append("git reset: "+(r.stdout.strip() or r.stderr.strip()))
                 r2=subprocess.run(["rsync","-av","/home/nico/estacion-ci/dashboard/","/home/nico/dashboard/","--exclude",".git"], capture_output=True, text=True, timeout=20)
                 log.append("rsync: "+r2.stdout.strip()[:500])
                 log.append("listo - reinicio via workflow SSH si es necesario")
