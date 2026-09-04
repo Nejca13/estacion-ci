@@ -36,9 +36,8 @@ Servidor parsea `CSV2` `temp,hum` (Clase 3) y `CSV4` `temp,hum,luz,agua` (Clase 
 
 * Usuario `nico` / pass `011539` (SSH 22)
 * Servicio: `python3 -u /home/nico/dashboard/servidor_datos.py` (autostart `@reboot` crontab)
-* Túnel: `cloudflared tunnel --url http://localhost:8000` (autostart `@reboot`, un solo túnel)
-* Último túnel: `https://reading-citysearch-explained-enable.trycloudflare.com` (cambia al reiniciar)
-* LAN: `http://192.168.0.43:8000/` `/clase3` `/clase4`
+* Túnel: `tailscale funnel https://nejca-iot.tail4284c3.ts.net` → `http://127.0.0.1:8000` (estable, no cambia)
+* LAN: `http://192.168.0.43:8000/` (`/` `/clase3` `/clase4`)
 
 ## Flujo local
 

@@ -46,3 +46,12 @@ Materia: Programación en C/C++ — Tecnicatura IoT CEAER. Clases 1-3 ya dadas, 
 
 * Cargar `clase4_estacion.ino` en Arduino y conectar a Pi (USB) para datos reales CSV4.
 * Trabajar en local en `estacion-ci` y desplegar con `scripts/deploy.sh` o push → Actions (no editar en Pi).
+
+## 2026-09-04 15:00 — Migración a Tailscale Funnel (estable)
+
+* Túnel Cloudflare quick (`trycloudflare.com`) y fijo `estacion.nejca.com.ar` descartados (DNS en DonWeb con CNAME a `cfargotunnel.com` no resuelve A público, requiere migrar NS a Cloudflare).
+* Instalado `tailscale funnel` en Pi Zero (`tail4284c3.ts.net`, `nejca-iot.tail4284c3.ts.net`), habilitado en `https://login.tailscale.com/f/funnel?node=nw6BvZhKx721CNTRL` → `Available on the internet: https://nejca-iot.tail4284c3.ts.net` → `proxy http://127.0.0.1:8000`.
+* `cloudflared` detenido (`systemctl disable cloudflared`), queda solo `tailscale funnel` + `python3 servidor_datos.py`.
+* `PI_URL` en GitHub Secrets actualizado a `https://nejca-iot.tail4284c3.ts.net` (estable, no cambia al reiniciar).
+* Deploy CI pasa a `POST /api/deploy` vía Funnel (mismo `DEPLOY_TOKEN`), sin exponer SSH.
+
