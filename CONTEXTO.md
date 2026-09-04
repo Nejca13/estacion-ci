@@ -55,3 +55,9 @@ Materia: Programación en C/C++ — Tecnicatura IoT CEAER (Centro de Especializa
 * `PI_URL` en GitHub Secrets actualizado a `https://nejca-iot.tail4284c3.ts.net` (estable, no cambia al reiniciar).
 * Deploy CI pasa a `POST /api/deploy` vía Funnel (mismo `DEPLOY_TOKEN`), sin exponer SSH.
 
+## 2026-09-04 16:20 — Soporte Multi-Arduino y Gráfico Clase 4
+
+* **Multi-Arduino**: Arquitectura multi-hilo en `servidor_datos.py` con `gestor_puertos` y `ArduinoWorker` independientes. Soporta 1, 2, 3 o más Arduinos concurrentes por USB/UART sin interferencias ni bloqueos. Endpoint `/api/dispositivos` y parámetro `?nodo=` / `?puerto=`.
+* **Dashboard Clase 4**: Selector dinámico de nodos en header (se activa si hay >1 Arduino), comandos de actuadores dirigidos por puerto.
+* **Sin simulación**: Cero datos inventados cuando no hay conexión (`--` en tarjetas y aviso claro en lienzo).
+* **Gráfico rediseñado**: Doble escala independiente (ambiente 0-50°C/100% vs ADC 0-1023), selector de vistas por sensor (Mín/Máx/Prom), tooltips interactivos con cursor, umbrales punteados (30°C calor / 500 lluvia).

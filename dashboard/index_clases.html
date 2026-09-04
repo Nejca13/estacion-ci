@@ -659,18 +659,26 @@
         elHum.textContent = '--';
       }
 
-      if (d.arduino_conectado) {
+      const total = d.total_conectados || (d.arduino_conectado ? 1 : 0);
+      if (total > 1) {
+        elSerial.textContent = total + ' CONECTADOS';
+        elSerial.style.color = '#34d399';
+        const ports = d.dispositivos ? Object.keys(d.dispositivos).map(p => p.replace('/dev/', '')).join(', ') : (d.puerto || 'USB');
+        elPort.textContent = 'Puertos: ' + ports;
+        elStatusBadge.className = 'status-badge';
+        elStatusText.textContent = total + ' ARDUINOS EN LÍNEA';
+      } else if (total === 1 || d.arduino_conectado) {
         elSerial.textContent = 'CONECTADO';
         elSerial.style.color = '#34d399';
-        elPort.textContent = 'Puerto: ' + (d.puerto || 'USB Serial');
+        elPort.textContent = 'Puerto: ' + (d.puerto ? d.puerto.replace('/dev/', '') : 'USB Serial');
         elStatusBadge.className = 'status-badge';
         elStatusText.textContent = 'EN LÍNEA';
       } else {
-        elSerial.textContent = 'SIMULADO / LIBRE';
-        elSerial.style.color = '#fbbf24';
+        elSerial.textContent = 'DESCONECTADO';
+        elSerial.style.color = '#f43f5e';
         elPort.textContent = 'Arduino no detectado';
         elStatusBadge.className = 'status-badge warning';
-        elStatusText.textContent = 'MODO SIMULACIÓN';
+        elStatusText.textContent = 'SIN ARDUINO';
       }
 
       if (d.ts) {

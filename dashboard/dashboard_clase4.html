@@ -53,6 +53,14 @@
     .pill.tarde{background:rgba(249,115,22,0.18);color:#fb923c;border:1px solid rgba(249,115,22,0.3)}
     .pill.agua-ok{background:rgba(6,182,214,0.15);color:#22d3ee}
     .pill.agua-alerta{background:rgba(239,68,68,0.15);color:#f87171}
+    /* Selector Multi-Arduino */
+    .node-selector-bar{display:none;align-items:center;justify-content:space-between;background:var(--sur);border:1px solid var(--b);border-radius:var(--r2);padding:10px 16px;flex-wrap:wrap;gap:10px}
+    .node-chips{display:flex;gap:8px;flex-wrap:wrap}
+    .node-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:8px;border:1px solid var(--b);background:rgba(255,255,255,0.04);color:var(--muted);font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s ease;font-family:inherit}
+    .node-chip:hover{background:rgba(255,255,255,0.08);color:#fff}
+    .node-chip.active{background:rgba(56,189,248,0.18);border-color:rgba(56,189,248,0.45);color:var(--pri);box-shadow:0 0 10px rgba(56,189,248,0.15)}
+    .node-chip.off{opacity:.45}
+    .node-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
   </style>
 </head>
 <body>
@@ -70,6 +78,16 @@
     <a class="nav" href="/panel">Panel</a>
   </div>
 </header>
+
+<!-- Selector de Nodos Multi-Arduino (se activa automáticamente si hay >1 Arduino) -->
+<div id="nodeSelectorBar" class="node-selector-bar">
+  <div style="display:flex;align-items:center;gap:8px">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--pri)" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+    <b style="font-size:.9rem">Estaciones Arduino Conectadas:</b>
+    <span id="nodeCountBadge" class="tag" style="background:rgba(56,189,248,0.15);color:var(--pri)">--</span>
+  </div>
+  <div id="nodeChips" class="node-chips"></div>
+</div>
 
 <div class="grid">
   <div class="card temp"><div class="k">Temperatura DHT11</div><div class="v"><span id="t">--</span><span style="font-size:1.2rem;color:var(--muted)"> °C</span></div><div><span id="tTag" class="tag">Esperando</span> <span id="ts" style="font-size:.8rem;color:var(--dim);margin-left:8px"></span></div></div>
@@ -216,21 +234,61 @@ function clasificarAgua(v){
   return {txt:'SECO', cls:'agua-ok'};
 }
 let lastData=null;
+let selectedNodePort = null;
+
 async function fetchDatos(){
   let d=null;
+  const q = selectedNodePort ? ('?puerto=' + encodeURIComponent(selectedNodePort)) : '';
   try{
-    let r=await fetch('/api/clase4/datos',{cache:'no-store'});
+    let r=await fetch('/api/clase4/datos' + q,{cache:'no-store'});
     if(r.ok) d=await r.json();
   }catch(e){}
   if(!d || d.temp===undefined){
-    try{ const r=await fetch('/datos',{cache:'no-store'}); if(r.ok) d=await r.json(); }catch(e){}
+    try{ const r=await fetch('/datos' + q,{cache:'no-store'}); if(r.ok) d=await r.json(); }catch(e){}
   }
   if(!d) throw new Error('no datos');
   lastData=d;
   return d;
 }
 
+function renderNodeSelector(d){
+  const bar = $('nodeSelectorBar');
+  const container = $('nodeChips');
+  const countBadge = $('nodeCountBadge');
+  if(!d.dispositivos || Object.keys(d.dispositivos).length <= 1){
+    if(bar) bar.style.display = 'none';
+    return;
+  }
+  if(bar) bar.style.display = 'flex';
+  const puertos = Object.keys(d.dispositivos);
+  if(countBadge) countBadge.textContent = d.total_conectados + ' de ' + puertos.length + ' en línea';
+  if(!selectedNodePort || !d.dispositivos[selectedNodePort]){
+    selectedNodePort = d.puerto || puertos[0];
+  }
+  let html = '';
+  puertos.forEach(p => {
+    const dev = d.dispositivos[p];
+    const isSel = (p === selectedNodePort);
+    const isConn = dev.conectado;
+    const tempTxt = (dev.temp != null) ? `${Number(dev.temp).toFixed(1)}°C` : '--';
+    html += `<button class="node-chip ${isSel ? 'active' : ''} ${!isConn ? 'off' : ''}" onclick="selectNode('${p}')" title="${dev.alias || p}">
+      <span class="node-dot" style="background:${isConn ? '#10b981' : '#f43f5e'}"></span>
+      <b>${dev.alias || p}</b>
+      <span style="opacity:.8">${tempTxt}</span>
+    </button>`;
+  });
+  if(container) container.innerHTML = html;
+}
+
+function selectNode(p){
+  if(selectedNodePort === p) return;
+  selectedNodePort = p;
+  hist = [];
+  fetchDatos().then(updateUI);
+}
+
 function updateUI(d){
+  renderNodeSelector(d);
   const conectado = !!(d && d.arduino_conectado && (d.temp !== null || d.luz !== null));
 
   if(!conectado){
@@ -687,9 +745,13 @@ function draw(){
   ctx.restore();
 }
 async function act(cmd){
-  log('→ '+cmd);
+  log('→ '+cmd + (selectedNodePort ? ' ('+selectedNodePort+')' : ''));
   try{
-    let r=await fetch('/api/clase4/actuador',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd})});
+    let r=await fetch('/api/clase4/actuador',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({cmd, puerto: selectedNodePort})
+    });
     let j=await r.json();
     log('← '+(j.result||j.estado||'ok'));
     if(cmd==='LED_ON') {actuadores.led=true; $('swLed').classList.add('on'); $('ledState').textContent='ON';}
@@ -699,7 +761,7 @@ async function act(cmd){
     if(cmd.startsWith('FAN_')){let v=cmd==='FAN_AUTO'?'AUTO':cmd.split('_')[1]; $('fanState').textContent=v+'/255'; if(v!=='AUTO') $('fanRange').value=v;}
   }catch(e){ log('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="vertical-align:middle"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg> error '+e); }
   // fallback viejo: /api/actuador
-  try{ await fetch('/api/actuador',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd})}); }catch(e){}
+  try{ await fetch('/api/actuador',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd, puerto: selectedNodePort})}); }catch(e){}
 }
 function toggle(who){
   if(who==='led') act(actuadores.led?'LED_OFF':'LED_ON');

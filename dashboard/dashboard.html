@@ -190,6 +190,58 @@
       color: #38bdf8;
     }
 
+    /* Selector Multi-Arduino */
+    .node-selector-bar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 10px 18px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .node-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .node-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+    .node-chip:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+    .node-chip.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
+    }
+    .node-chip.off {
+      opacity: 0.45;
+    }
+    .node-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
     /* Primary Cards Grid */
     .metrics-grid {
       display: grid;
@@ -566,6 +618,18 @@
         </nav>
       </div>
     </header>
+
+    <!-- Selector de Nodos Multi-Arduino (se activa automáticamente si hay >1 Arduino) -->
+    <div id="nodeSelectorBar" class="node-selector-bar">
+      <div style="display:flex;align-items:center;gap:8px">
+        <svg class="icon-inline" style="width:18px;height:18px;color:#38bdf8;" viewBox="0 0 24 24">
+          <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>
+        </svg>
+        <b style="font-size:0.9rem">Estaciones Arduino Conectadas:</b>
+        <span id="nodeCountBadge" style="font-size:0.75rem;padding:3px 8px;border-radius:6px;background:rgba(56,189,248,0.15);color:#38bdf8;font-weight:700">--</span>
+      </div>
+      <div id="nodeChips" class="node-chips"></div>
+    </div>
 
     <!-- Metrics Grid -->
     <div class="metrics-grid">
@@ -1000,21 +1064,64 @@
       }
     }
 
+    let selectedNodePort = null;
+
+    function renderNodeSelector(d) {
+      const bar = document.getElementById('nodeSelectorBar');
+      const container = document.getElementById('nodeChips');
+      const countBadge = document.getElementById('nodeCountBadge');
+      if (!d.dispositivos || Object.keys(d.dispositivos).length <= 1) {
+        if (bar) bar.style.display = 'none';
+        return;
+      }
+      if (bar) bar.style.display = 'flex';
+      const puertos = Object.keys(d.dispositivos);
+      if (countBadge) countBadge.textContent = (d.total_conectados || 0) + ' de ' + puertos.length + ' en línea';
+      if (!selectedNodePort || !d.dispositivos[selectedNodePort]) {
+        selectedNodePort = d.puerto || puertos[0];
+      }
+      let html = '';
+      puertos.forEach(p => {
+        const dev = d.dispositivos[p];
+        const isSel = (p === selectedNodePort);
+        const isConn = dev.conectado;
+        const tempTxt = (dev.temp != null) ? `${Number(dev.temp).toFixed(1)}°C` : '--';
+        html += `<button class="node-chip ${isSel ? 'active' : ''} ${!isConn ? 'off' : ''}" onclick="selectNode('${p}')" title="${dev.alias || p}">
+          <span class="node-dot" style="background:${isConn ? '#10b981' : '#f43f5e'}"></span>
+          <b>${dev.alias || p}</b>
+          <span style="opacity:0.8">${tempTxt}</span>
+        </button>`;
+      });
+      if (container) container.innerHTML = html;
+    }
+
+    function selectNode(p) {
+      if (selectedNodePort === p) return;
+      selectedNodePort = p;
+      historyData.length = 0;
+      fetchData();
+    }
+
     async function fetchData() {
       try {
-        const r = await fetch('/datos', { cache: 'no-store' });
+        const q = selectedNodePort ? ('?puerto=' + encodeURIComponent(selectedNodePort)) : '';
+        const r = await fetch('/datos' + q, { cache: 'no-store' });
         if (!r.ok) throw new Error('HTTP ' + r.status);
         const d = await r.json();
         
+        renderNodeSelector(d);
+
         // If backend returns populated historical array on first load
         if (d.historial && d.historial.length && historyData.length === 0) {
           d.historial.forEach(item => {
-            historyData.push({ t: parseFloat(item.t), h: parseFloat(item.h), ts: item.ts });
+            if (item && item.t != null) {
+              historyData.push({ t: parseFloat(item.t), h: parseFloat(item.h), ts: item.ts });
+            }
           });
         }
         
         updateUI(d);
-        setConnectionStatus(true);
+        setConnectionStatus(d.arduino_conectado !== false);
       } catch (err) {
         setConnectionStatus(false, 'No se puede conectar al servidor.');
       }
