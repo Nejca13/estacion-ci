@@ -49,14 +49,18 @@ def leer_serial():
         if ser is None:
             estado["arduino_conectado"]=False; estado["puerto"]=None
             p=buscar_puerto()
-            if p is None: time.sleep(2); continue
+            if p is None:
+                estado["temp"]=None; estado["hum"]=None; estado["luz"]=None; estado["agua"]=None
+                time.sleep(2); continue
             try: ser=serial.Serial(p, BAUD, timeout=1); estado["arduino_conectado"]=True; estado["puerto"]=p; print("Conectado a",p)
             except: ser=None; time.sleep(2); continue
         try: linea=ser.readline().decode("utf-8","ignore").strip()
         except:
             try: ser.close()
             except: pass
-            ser=None; estado["arduino_conectado"]=False; continue
+            ser=None; estado["arduino_conectado"]=False
+            estado["temp"]=None; estado["hum"]=None; estado["luz"]=None; estado["agua"]=None
+            continue
         if not linea: continue
         if linea in ("ESTACION_METEO_CSV","ERROR"):
             if linea=="ERROR": estado["ts"]=time.strftime("%H:%M:%S")
@@ -86,10 +90,6 @@ def leer_serial():
                 if not cambio and not (mt or mh): continue
         if cambio:
             ts_str=time.strftime("%H:%M:%S"); estado["ts"]=ts_str; estado["hora"]=time.strftime("%H:%M:%S"); estado["fecha"]=time.strftime("%Y-%m-%d")
-            if estado["luz"] is None:
-                h=time.localtime().tm_hour; import random; base=650+random.randint(0,120) if 7 <= h <= 19 else 80+random.randint(0,80); estado["luz"]=base
-            if estado["agua"] is None:
-                import random; estado["agua"]=700+random.randint(0,200) if random.random()<0.15 else 120+random.randint(0,80)
             if estado["temp"] is not None and estado["hum"] is not None:
                 estado["historial"].append({"t":estado["temp"],"h":estado["hum"],"luz":estado["luz"],"agua":estado["agua"],"ts":ts_str})
                 if len(estado["historial"])>40: estado["historial"].pop(0)

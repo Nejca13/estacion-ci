@@ -217,7 +217,6 @@ function clasificarAgua(v){
 }
 let lastData=null;
 async function fetchDatos(){
-  // Intenta servidor clase4 (8001) sino fallback a 8000
   let d=null;
   try{
     let r=await fetch('/api/clase4/datos',{cache:'no-store'});
@@ -227,66 +226,111 @@ async function fetchDatos(){
     try{ const r=await fetch('/datos',{cache:'no-store'}); if(r.ok) d=await r.json(); }catch(e){}
   }
   if(!d) throw new Error('no datos');
-  // Si d no trae luz/agua, simular a partir de temp/hum + hora para demo sin romper
-  if(d.luz===undefined || d.luz===null){
-    // simula: luz varia con hora (dia 700, noche 100)
-    const h=new Date().getHours();
-    let base = (h>=7 && h<=19)? 650 + Math.random()*120 : 80 + Math.random()*80;
-    if(d.temp && d.temp>30) base+=30;
-    d.luz=Math.round(base);
-  }
-  if(d.agua===undefined || d.agua===null){
-    d.agua = Math.random()<0.15 ? 700+Math.random()*200 : 120+Math.random()*80;
-  }
-  if(!d.ts) d.ts=new Date().toLocaleTimeString();
   lastData=d;
   return d;
 }
+
 function updateUI(d){
-  const t=parseFloat(d.temp), h=parseFloat(d.hum), luz=parseInt(d.luz), agua=parseInt(d.agua);
-  $('t').textContent=isNaN(t)?'--':t.toFixed(1);
-  $('h').textContent=isNaN(h)?'--':Math.round(h);
-  $('luz').textContent=isNaN(luz)?'--':luz;
-  $('agua').textContent=isNaN(agua)?'--':agua;
-  $('ts').textContent=d.ts||'';
+  const conectado = !!(d && d.arduino_conectado && (d.temp !== null || d.luz !== null));
+
+  if(!conectado){
+    $('conn').className='badge err';
+    $('connTxt').textContent='Arduino Desconectado';
+    $('t').textContent='--';
+    $('h').textContent='--';
+    $('luz').textContent='--';
+    $('agua').textContent='--';
+    $('ts').textContent=d.ts || 'Sin enlace Serial';
+    $('tTag').textContent='--';
+    $('hTag').textContent='--';
+    $('luzEstado').textContent='--';
+    $('luzEstado').className='pill';
+    $('luzBar').textContent='Arduino no detectado';
+    $('aguaTag').textContent='--';
+    $('aguaTag').className='pill';
+    $('estadoGral').textContent='DESCONECTADO';
+    $('estadoDesc').textContent='Conecte Arduino por USB Serial';
+    updateChartBadges(NaN, NaN, NaN, NaN);
+    draw();
+    return;
+  }
+
+  $('conn').className='badge';
+  $('connTxt').textContent= d.puerto ? ('En línea (' + d.puerto.replace('/dev/','') + ')') : 'En línea';
+
+  const t = (d.temp !== null && d.temp !== undefined) ? parseFloat(d.temp) : NaN;
+  const h = (d.hum !== null && d.hum !== undefined) ? parseFloat(d.hum) : NaN;
+  const luz = (d.luz !== null && d.luz !== undefined) ? parseInt(d.luz) : NaN;
+  const agua = (d.agua !== null && d.agua !== undefined) ? parseInt(d.agua) : NaN;
+
+  $('t').textContent = isNaN(t) ? '--' : t.toFixed(1);
+  $('h').textContent = isNaN(h) ? '--' : Math.round(h);
+  $('luz').textContent = isNaN(luz) ? '--' : luz;
+  $('agua').textContent = isNaN(agua) ? '--' : agua;
+  $('ts').textContent = d.ts || '';
+
   // luz estado
-  const lc=clasificarLuz(luz);
-  const el=$('luzEstado'); el.textContent=lc.txt; el.className='pill '+lc.cls;
-  $('luzBar').textContent=lc.desc;
+  if(!isNaN(luz)){
+    const lc = clasificarLuz(luz);
+    const el = $('luzEstado'); el.textContent = lc.txt; el.className = 'pill ' + lc.cls;
+    $('luzBar').textContent = lc.desc;
+  } else {
+    $('luzEstado').textContent = '--'; $('luzEstado').className = 'pill';
+    $('luzBar').textContent = 'Sensor LDR A1 no presente';
+  }
+
   // agua
-  const ac=clasificarAgua(agua);
-  const ae=$('aguaTag'); ae.textContent=ac.txt; ae.className='pill '+ac.cls;
+  if(!isNaN(agua)){
+    const ac = clasificarAgua(agua);
+    const ae = $('aguaTag'); ae.textContent = ac.txt; ae.className = 'pill ' + ac.cls;
+  } else {
+    $('aguaTag').textContent = '--'; $('aguaTag').className = 'pill';
+  }
+
   // hora
-  const now=new Date();
-  $('hora').textContent= d.hora || now.toLocaleTimeString();
-  $('fecha').textContent= d.fecha || now.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'short'});
+  const now = new Date();
+  $('hora').textContent = d.hora || now.toLocaleTimeString();
+  $('fecha').textContent = d.fecha || now.toLocaleDateString('es-AR', {weekday:'long', day:'numeric', month:'short'});
+
   // estado general (if de clase2 + struct)
-  let estado='OK', desc='Normal';
-  if(agua>500){estado='LLUVIA'; desc='Cerrar riego';}
-  else if(!isNaN(t) && t>35){estado='CRITICO'; desc='Golpe calor';}
-  else if(!isNaN(t) && t>30){estado='ALERTA'; desc='Calor';}
-  else if(lc.txt==='NOCHE'){estado='NOCHE'; desc='Modo nocturno';}
-  $('estadoGral').textContent=estado;
-  $('estadoDesc').textContent=desc;
+  let estado = 'OK', desc = 'Normal';
+  if(!isNaN(agua) && agua > 500){ estado = 'LLUVIA'; desc = 'Cerrar riego'; }
+  else if(!isNaN(t) && t > 35){ estado = 'CRITICO'; desc = 'Golpe calor'; }
+  else if(!isNaN(t) && t > 30){ estado = 'ALERTA'; desc = 'Calor'; }
+  else if(!isNaN(luz) && clasificarLuz(luz).txt === 'NOCHE'){ estado = 'NOCHE'; desc = 'Modo nocturno'; }
+  $('estadoGral').textContent = estado;
+  $('estadoDesc').textContent = desc;
+
   // tags temp/hum
-  $('tTag').textContent = isNaN(t)?'--': (t>30?'ALERTA':'OK');
-  $('hTag').textContent = isNaN(h)?'--': (h>80?'ALTA': h<30?'SECO':'OK');
-  // hist
+  $('tTag').textContent = isNaN(t) ? '--' : (t > 30 ? 'ALERTA' : 'OK');
+  $('hTag').textContent = isNaN(h) ? '--' : (h > 80 ? 'ALTA' : h < 30 ? 'SECO' : 'OK');
+
   // hist
   if(Array.isArray(d.historial) && d.historial.length > 0 && hist.length < 5){
-    hist = d.historial.map(x => ({
-      t: parseFloat(x.t),
-      h: parseFloat(x.h),
-      luz: parseInt(x.luz),
-      agua: parseInt(x.agua),
-      ts: x.ts || ''
-    }));
+    hist = d.historial
+      .filter(x => x && (x.t !== null || x.luz !== null))
+      .map(x => ({
+        t: (x.t !== null && x.t !== undefined) ? parseFloat(x.t) : null,
+        h: (x.h !== null && x.h !== undefined) ? parseFloat(x.h) : null,
+        luz: (x.luz !== null && x.luz !== undefined) ? parseInt(x.luz) : null,
+        agua: (x.agua !== null && x.agua !== undefined) ? parseInt(x.agua) : null,
+        ts: x.ts || ''
+      }));
   }
-  hist.push({t, h, luz, agua, ts: d.ts || new Date().toLocaleTimeString()});
-  if(hist.length > MAX) hist.shift();
+
+  if(!isNaN(t) || !isNaN(luz)){
+    hist.push({
+      t: isNaN(t) ? null : t,
+      h: isNaN(h) ? null : h,
+      luz: isNaN(luz) ? null : luz,
+      agua: isNaN(agua) ? null : agua,
+      ts: d.ts || new Date().toLocaleTimeString()
+    });
+    if(hist.length > MAX) hist.shift();
+  }
+
   updateChartBadges(t, h, luz, agua);
   draw();
-  $('conn').className='badge'; $('connTxt').textContent='En línea';
 }
 
 // Control y motor de renderizado de gráfico multivariable
@@ -513,7 +557,15 @@ function draw(){
     ctx.restore();
   }
 
-  if(hist.length === 0){
+  if(hist.length === 0 || $('conn').classList.contains('err')){
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '600 13px "Plus Jakarta Sans", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Arduino Desconectado (USB Serial 9600 baud)', pad.left + plotW / 2, pad.top + plotH / 2 - 10);
+    ctx.font = '11px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText('No se simulan valores · Conecte el Arduino para graficar telemetría en vivo', pad.left + plotW / 2, pad.top + plotH / 2 + 12);
     ctx.restore();
     return;
   }
@@ -655,7 +707,7 @@ function toggle(who){
 }
 function fan(v){ act('FAN_'+v); }
 async function loop(){
-  try{ const d=await fetchDatos(); updateUI(d); }catch(e){ $('conn').className='badge err'; $('connTxt').textContent='Sin datos'; }
+  try{ const d=await fetchDatos(); updateUI(d); }catch(e){ updateUI({arduino_conectado:false}); }
 }
 setInterval(loop,1200); loop();
 setInterval(()=>{ const n=new Date(); if(!lastData || !lastData.hora) {$('hora').textContent=n.toLocaleTimeString();}},1000);
