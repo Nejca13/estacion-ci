@@ -1,37 +1,683 @@
 <!DOCTYPE html>
-<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CEAER - IoT Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
-<style>:root{--bg:#090d16;--sur:rgba(17,24,39,0.85);--b:rgba(255,255,255,0.08);--muted:#94a3b8}
-body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#090d16;color:#f8fafc;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.box{max-width:700px;width:100%;background:var(--sur);border:1px solid var(--b);border-radius:18px;padding:28px}
-h1{font-size:1.5rem;margin-bottom:6px} p{color:var(--muted);font-size:.95rem;margin-bottom:22px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media(max-width:640px){.grid{grid-template-columns:1fr}}
-.card{border:1px solid var(--b);border-radius:14px;padding:18px;background:rgba(26,35,52,0.6);text-decoration:none;color:#f8fafc;display:block;transition:.15s}
-.card:hover{transform:translateY(-2px);border-color:rgba(56,189,248,0.3)}
-.badge{display:inline-block;font-size:.75rem;font-weight:700;padding:3px 8px;border-radius:999px;margin-bottom:8px}
-.b3{background:rgba(14,165,233,0.15);color:#38bdf8;border:1px solid rgba(14,165,233,0.3)}
-.b4{background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.3)}
-.card h3{margin:4px 0 6px 0} .card p{font-size:.85rem;color:var(--muted);margin:0}
-small{color:var(--muted)} .foot{margin-top:18px;font-size:.85rem;color:var(--muted);text-align:center}
-</style></head>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CEAER — Estación Meteorológica IoT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --surface: rgba(17, 24, 39, 0.82);
+      --surface-card: rgba(22, 32, 54, 0.7);
+      --surface-card-hover: rgba(28, 41, 68, 0.9);
+      --surface-muted: rgba(255, 255, 255, 0.03);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-light: rgba(255, 255, 255, 0.14);
+      --border-focus: rgba(56, 189, 248, 0.45);
+      --primary: #38bdf8;
+      --primary-glow: rgba(56, 189, 248, 0.15);
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.15);
+      --orange: #f97316;
+      --amber: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --radius-xl: 18px;
+      --radius-lg: 14px;
+      --radius-md: 10px;
+      --radius-sm: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.12) 0, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(249, 115, 22, 0.08) 0, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.06) 0, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 980px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    /* Top Brand & Status Header */
+    header {
+      padding: 20px 24px;
+      background: var(--surface);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .institution-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--primary);
+      text-transform: uppercase;
+    }
+
+    .brand-meta h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+
+    .brand-meta p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.28);
+      transition: all 0.2s ease;
+    }
+
+    .status-badge.warning {
+      background: rgba(245, 158, 11, 0.12);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.28);
+    }
+
+    .status-badge.offline {
+      background: rgba(239, 68, 68, 0.12);
+      color: #f87171;
+      border-color: rgba(239, 68, 68, 0.28);
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      background: currentColor;
+      border-radius: 50%;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    .btn-nav {
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 700;
+      transition: all 0.15s ease;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .btn-nav:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    /* Live Telemetry Strip */
+    .telemetry-strip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 16px 20px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 768px) {
+      .telemetry-strip {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 440px) {
+      .telemetry-strip {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .telemetry-tile {
+      background: var(--surface-muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .tile-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .tile-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+    }
+
+    .tile-unit {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .tile-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Class Cards Grid */
+    .classes-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    @media (max-width: 720px) {
+      .classes-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .class-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 24px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .class-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+
+    .card-c3::before {
+      background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+    }
+
+    .card-c4::before {
+      background: linear-gradient(90deg, #10b981, #34d399);
+    }
+
+    .class-card:hover {
+      transform: translateY(-3px);
+      background: var(--surface-card-hover);
+    }
+
+    .card-c3:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+      box-shadow: 0 12px 28px -10px rgba(14, 165, 233, 0.25);
+    }
+
+    .card-c4:hover {
+      border-color: rgba(16, 185, 129, 0.4);
+      box-shadow: 0 12px 28px -10px rgba(16, 185, 129, 0.25);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .class-badge {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 4px 10px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+
+    .badge-c3 {
+      background: rgba(14, 165, 233, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(14, 165, 233, 0.35);
+    }
+
+    .badge-c4 {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+
+    .route-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    .class-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .class-desc {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 18px;
+    }
+
+    .tech-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 22px;
+    }
+
+    .tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .cta-text {
+      font-size: 0.86rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-c3 .cta-text {
+      color: #38bdf8;
+    }
+
+    .card-c4 .cta-text {
+      color: #34d399;
+    }
+
+    .arrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      transition: transform 0.15s ease;
+    }
+
+    .class-card:hover .arrow {
+      transform: translateX(4px);
+    }
+
+    /* Architecture Info Box */
+    .arch-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .arch-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .arch-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .arch-diagram {
+      background: var(--surface-muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .arch-diagram b {
+      color: #f8fafc;
+    }
+
+    .arch-diagram .hl-node {
+      color: #38bdf8;
+    }
+
+    .arch-diagram .hl-conn {
+      color: #34d399;
+    }
+
+    /* Endpoints & Links Footer */
+    .portal-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      transition: color 0.15s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--primary);
+    }
+
+    .footer-copy {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
 <body>
-<div class="box">
- <h1>🌦️ Estación Meteorológica – CEAER</h1>
- <p>Elegí la clase para ver su dashboard. Mismo servicio en <b>:8000</b>, un solo túnel.</p>
- <div class="grid">
-  <a class="card" href="/clase3"><span class="badge b3">Clase 3</span><h3>Bucles + DHT11 + CSV</h3><p>for / millis / Serial 9600. Dashboard original con temp, hum, sensación y punto de rocío.</p><small>→ /clase3</small></a>
-  <a class="card" href="/clase4"><span class="badge b4">Clase 4 · NUEVO</span><h3>Structs + Punteros + Actuadores</h3><p>Array de Sensores, LDR día/noche/tarde, agua, hora y control de LED/relay/ventilador.</p><small>→ /clase4</small></a>
- </div>
- <div class="foot"><a href="/panel" style="color:#38bdf8">Panel de Red</a> · <a href="/datos" style="color:#94a3b8">/datos (Clase3)</a> · <a href="/api/clase4/datos" style="color:#94a3b8">/api/clase4/datos</a></div>
+
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="brand-meta">
+      <span class="institution-tag">CEAER · Tecnicatura en IoT · Programación C/C++</span>
+      <h1>Estación Meteorológica</h1>
+      <p>Servicio unificado en puerto 8000 · Nodo Raspberry Pi Zero W</p>
+    </div>
+    <div class="header-actions">
+      <div id="statusBadge" class="status-badge">
+        <span class="pulse-dot"></span>
+        <span id="statusText">CONECTANDO</span>
+      </div>
+      <a class="btn-nav" href="/panel">PANEL DE RED</a>
+    </div>
+  </header>
+
+  <!-- Live Telemetry Strip -->
+  <div class="telemetry-strip">
+    <div class="telemetry-tile">
+      <span class="tile-label">Temperatura DHT11</span>
+      <div class="tile-value"><span id="liveTemp">--</span><span class="tile-unit"> °C</span></div>
+      <span class="tile-sub" id="tempTag">Esperando trama</span>
+    </div>
+    <div class="telemetry-tile">
+      <span class="tile-label">Humedad DHT11</span>
+      <div class="tile-value"><span id="liveHum">--</span><span class="tile-unit"> %</span></div>
+      <span class="tile-sub" id="humTag">Sensor ambiental</span>
+    </div>
+    <div class="telemetry-tile">
+      <span class="tile-label">Enlace Arduino</span>
+      <div class="tile-value" style="font-size:1.15rem"><span id="liveSerial">BUSCANDO</span></div>
+      <span class="tile-sub" id="livePort">Puerto: --</span>
+    </div>
+    <div class="telemetry-tile">
+      <span class="tile-label">Última Trama</span>
+      <div class="tile-value" style="font-size:1.25rem"><span id="liveTs">--:--:--</span></div>
+      <span class="tile-sub">Baud rate: 9600</span>
+    </div>
+  </div>
+
+  <!-- Class Dashboards Cards Grid -->
+  <div class="classes-grid">
+    
+    <!-- Clase 3 Card -->
+    <a class="class-card card-c3" href="/clase3">
+      <div>
+        <div class="card-top">
+          <span class="class-badge badge-c3">Clase 3 · V1.0 Base</span>
+          <span class="route-chip">/clase3</span>
+        </div>
+        <h2 class="class-title">Bucles, DHT11 y Transmisión CSV</h2>
+        <p class="class-desc">
+          Implementación original con sensor DHT11, ciclos de lectura no bloqueante con millis(), transmisión serie a 9600 baud y cálculo de sensación térmica y punto de rocío.
+        </p>
+        <div class="tech-tags">
+          <span class="tag">DHT11</span>
+          <span class="tag">UART 9600</span>
+          <span class="tag">millis()</span>
+          <span class="tag">CSV 2 campos</span>
+          <span class="tag">Gráfico Temp/Hum</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="cta-text">Abrir Dashboard Clase 3 <span class="arrow">→</span></span>
+        <span class="route-chip">DHT11 Base</span>
+      </div>
+    </a>
+
+    <!-- Clase 4 Card -->
+    <a class="class-card card-c4" href="/clase4">
+      <div>
+        <div class="card-top">
+          <span class="class-badge badge-c4">Clase 4 · V2.0 Avanzada</span>
+          <span class="route-chip">/clase4</span>
+        </div>
+        <h2 class="class-title">Structs, Punteros y Actuadores</h2>
+        <p class="class-desc">
+          Arquitectura modular con struct Sensor y pasaje por referencia (Sensor*). Estación completa con LDR fotocélula (A1), sensor de agua (A2) y comando de actuadores (LED, Bomba, PWM Fan).
+        </p>
+        <div class="tech-tags">
+          <span class="tag">struct Sensor</span>
+          <span class="tag">Punteros (*s)</span>
+          <span class="tag">LDR Luz A1</span>
+          <span class="tag">Agua A2</span>
+          <span class="tag">Actuadores D7/D8/D9</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="cta-text">Abrir Dashboard Clase 4 <span class="arrow">→</span></span>
+        <span class="route-chip">Multi-sensor</span>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- Educational Hardware Architecture Box -->
+  <div class="arch-box">
+    <div class="arch-header">
+      <span class="arch-title">Arquitectura del Sistema y Flujo de Datos</span>
+      <span class="route-chip">Hardware &middot; Firmware &middot; Web</span>
+    </div>
+    <div class="arch-diagram">
+<b>SENSORES</b> [DHT11 D2 | LDR A1 | Agua A2] 
+  <span class="hl-conn">──(GPIO/ADC)──&gt;</span> <b>ARDUINO UNO</b> [clase4_estacion.ino]
+  <span class="hl-conn">──(USB Serial 9600 baud)──&gt;</span> <span class="hl-node"><b>RPI ZERO W</b> [servidor_datos.py :8000]</span>
+  <span class="hl-conn">──(Tailscale Funnel / HTTPS)──&gt;</span> <b>DASHBOARD WEB</b>
+    </div>
+  </div>
+
+  <!-- Endpoints Directory & Footer -->
+  <footer class="portal-footer">
+    <div class="footer-links">
+      <a href="/clase3">/clase3 (Dashboard C3)</a>
+      <span>&middot;</span>
+      <a href="/clase4">/clase4 (Dashboard C4)</a>
+      <span>&middot;</span>
+      <a href="/panel">/panel (Red WiFi)</a>
+      <span>&middot;</span>
+      <a href="/datos">/datos (JSON C3)</a>
+      <span>&middot;</span>
+      <a href="/api/clase4/datos">/api/clase4/datos (JSON C4)</a>
+      <span>&middot;</span>
+      <a href="/api/estado">/api/estado (Métricas Pi)</a>
+    </div>
+    <div class="footer-copy">
+      CEAER — Centro de Educación Agropecuaria y Estudios Regionales &middot; Nodo IoT Pi Zero W v1
+    </div>
+  </footer>
+
 </div>
-</body></html>
-<!-- trigger CI vie 04 sep 2026 12:17:17 -03 -->
-<!-- deploy test 2 vie 04 sep 2026 12:23:11 -03 -->
-<!-- final funnel test 2026-09-04T14:20:08-03:00 -->
-<!-- retry test -->
-<!-- tailnet test 2026-09-04T14:24:47-03:00 -->
-<!-- autodeploy test 2026-09-04T14:27:55-03:00 -->
-<!-- final funnel test -->
-<!-- stable deploy test 2026-09-04T14:33:20-03:00 -->
+
+<script>
+  // Polling ultra-ligero para RPi Zero W v1 (sin sobrecarga de CPU ni DOM reflow excesivo)
+  async function actualizarTelemetria() {
+    try {
+      const resp = await fetch('/datos', { cache: 'no-store' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const d = await resp.json();
+
+      const elTemp = document.getElementById('liveTemp');
+      const elHum = document.getElementById('liveHum');
+      const elSerial = document.getElementById('liveSerial');
+      const elPort = document.getElementById('livePort');
+      const elTs = document.getElementById('liveTs');
+      const elTempTag = document.getElementById('tempTag');
+      const elStatusBadge = document.getElementById('statusBadge');
+      const elStatusText = document.getElementById('statusText');
+
+      if (d.temp !== null && d.temp !== undefined) {
+        elTemp.textContent = Number(d.temp).toFixed(1);
+        if (d.temp < 18) elTempTag.textContent = 'Fresco';
+        else if (d.temp <= 28) elTempTag.textContent = 'Agradable / Óptimo';
+        else elTempTag.textContent = 'Cálido / Alerta';
+      } else {
+        elTemp.textContent = '--';
+        elTempTag.textContent = 'Esperando trama';
+      }
+
+      if (d.hum !== null && d.hum !== undefined) {
+        elHum.textContent = Math.round(d.hum);
+      } else {
+        elHum.textContent = '--';
+      }
+
+      if (d.arduino_conectado) {
+        elSerial.textContent = 'CONECTADO';
+        elSerial.style.color = '#34d399';
+        elPort.textContent = 'Puerto: ' + (d.puerto || 'USB Serial');
+        elStatusBadge.className = 'status-badge';
+        elStatusText.textContent = 'EN LÍNEA';
+      } else {
+        elSerial.textContent = 'SIMULADO / LIBRE';
+        elSerial.style.color = '#fbbf24';
+        elPort.textContent = 'Arduino no detectado';
+        elStatusBadge.className = 'status-badge warning';
+        elStatusText.textContent = 'MODO SIMULACIÓN';
+      }
+
+      if (d.ts) {
+        elTs.textContent = d.ts;
+      }
+    } catch (e) {
+      const elStatusBadge = document.getElementById('statusBadge');
+      const elStatusText = document.getElementById('statusText');
+      if (elStatusBadge) {
+        elStatusBadge.className = 'status-badge offline';
+        elStatusText.textContent = 'DESCONECTADO';
+      }
+    }
+  }
+
+  // Primera carga inmediata y luego intervalo prudente de 4s (ideal para Pi Zero W)
+  actualizarTelemetria();
+  setInterval(actualizarTelemetria, 4000);
+</script>
+</body>
+</html>
