@@ -49,7 +49,7 @@ class ArduinoWorker(threading.Thread):
                     "ts": None,
                     "hora": None,
                     "fecha": None,
-                    "actuadores": {"led": False, "relay": False, "fan": 0},
+                    "actuadores": {"buzzer": False},
                     "log_act": [],
                     "historial": []
                 }
@@ -75,15 +75,22 @@ class ArduinoWorker(threading.Thread):
                         d["log_act"].append({"cmd": cmd, "resp": resp.strip(), "ts": time.strftime("%H:%M:%S")})
                         if len(d["log_act"]) > 20:
                             d["log_act"].pop(0)
-                        if cmd == "LED_ON": d["actuadores"]["led"] = True
-                        elif cmd == "LED_OFF": d["actuadores"]["led"] = False
-                        elif cmd == "RELAY_ON": d["actuadores"]["relay"] = True
-                        elif cmd == "RELAY_OFF": d["actuadores"]["relay"] = False
-                        elif cmd.startswith("FAN_"):
-                            try:
-                                if cmd == "FAN_AUTO": d["actuadores"]["fan"] = "AUTO"
-                                else: d["actuadores"]["fan"] = int(cmd.split("_")[1])
-                            except: pass
+                        # Buzzer: B = beep 200ms, pulso visual
+                        if cmd == "B":
+                            d["actuadores"]["buzzer"] = True
+                            # auto-off visual tras 700ms
+                            def _off(port=d["puerto"] if "puerto" in d else self.puerto):
+                                try:
+                                    import time as _t
+                                    _t.sleep(0.7)
+                                    with lock_estado:
+                                        dd = dispositivos.get(port)
+                                        if dd: dd["actuadores"]["buzzer"] = False
+                                except: pass
+                            import threading as _th
+                            _th.Thread(target=_off, daemon=True).start()
+                        elif cmd == "MUTE":
+                            d["actuadores"]["buzzer"] = False
                 return resp.strip() or "ok: " + cmd
             except Exception as e:
                 return "error: " + str(e)
@@ -280,7 +287,7 @@ def obtener_dispositivo_seleccionado(params=None):
             "ts": None,
             "hora": None,
             "fecha": None,
-            "actuadores": {"led": False, "relay": False, "fan": 0},
+            "actuadores": {"buzzer": False},
             "log_act": [],
             "historial": []
         }
@@ -318,7 +325,7 @@ def obtener_estado(params=None):
         "arduino_conectado": dev.get("conectado", False),
         "puerto": puerto_activo,
         "historial": dev.get("historial", []),
-        "actuadores": dev.get("actuadores", {"led": False, "relay": False, "fan": 0}),
+        "actuadores": dev.get("actuadores", {"buzzer": False}),
         "log_act": dev.get("log_act", []),
         # Extensiones multidispositivo:
         "nodo_activo": dev.get("id"),

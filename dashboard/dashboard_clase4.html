@@ -91,7 +91,7 @@
 <header>
   <div class="brand">
     <div class="brand-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16"/></svg></div>
-    <div><h1 style="font-size:1.2rem">Clase 4 – Estación Completa</h1><p style="font-size:.82rem;color:var(--muted)">Struct Sensor + Punteros + Array · DHT11 + LDR + Agua + Actuadores</p></div>
+    <div><h1 style="font-size:1.2rem">Clase 4 – Estación Completa</h1><p style="font-size:.82rem;color:var(--muted)">Struct Sensor + Punteros + Array · DHT11 + LDR + Agua + Buzzer D6</p></div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <div id="conn" class="badge"><span style="width:7px;height:7px;background:currentColor;border-radius:50%;box-shadow:0 0 8px currentColor"></span> <span id="connTxt">Conectando</span></div>
@@ -201,77 +201,40 @@
 <div class="actuadores">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
     <div style="display:flex;align-items:center;gap:8px">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--pri)" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-      <h3 style="margin:0;font-size:1.1rem">Actuadores – Control desde Dashboard</h3>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--pri)" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+      <h3 style="margin:0;font-size:1.1rem">Buzzer — Único actuador de Clase 4</h3>
     </div>
-    <span class="tag" style="font-family:'JetBrains Mono',monospace;font-size:.76rem;color:var(--muted)">POST /api/clase4/actuador → Serial 9600</span>
+    <span class="tag" style="font-family:'JetBrains Mono',monospace;font-size:.76rem;color:var(--muted)">POST /api/clase4/actuador → 'B' (tone D6)</span>
   </div>
   <p style="font-size:.85rem;color:var(--muted);margin-top:2px;line-height:1.4">
-    En Clase 4 pasamos <code>Sensor*</code> por referencia para <b>modificar</b> el estado del actuador. Estos controles envían <code>LED_ON/OFF</code>, <code>RELAY_ON/OFF</code>, <code>FAN_0..255</code> por Serial.
+    En Clase 4 <code>actualizar_buzzer(sensores,5)</code> usa <code>buscar_sensor("LLUVIA")</code> y <code>puntero->valor</code> para decidir <code>tone(6,2000)</code>. El botón envía <code>B</code> por Serial (mismo que probás en Monitor 9600).
   </p>
-  <div class="act-grid">
+  <div class="act-grid" style="grid-template-columns: minmax(280px, 380px);">
     <div class="act-card">
       <div class="act-card-head">
         <span class="act-card-title">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V18h8v-3.3A7 7 0 0 0 12 2z"/></svg>
-          LED Indicador (D8)
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          Buzzer Pasivo (D6)
         </span>
-        <span id="ledState" class="act-badge">OFF</span>
+        <span id="buzzerState" class="act-badge">READY</span>
       </div>
-      <span style="font-size:.8rem;color:var(--muted)">Día/Noche automático o manual</span>
+      <span style="font-size:.8rem;color:var(--muted)">Suena si <code>LLUVIA&gt;500</code> o <code>TEMP&gt;35</code> (logica con <code>Sensor*</code>)</span>
       <div class="act-control-row">
-        <span style="font-size:.8rem;color:var(--dim)">Interruptor</span>
-        <div id="swLed" class="sw" onclick="toggle('led')" title="Conmutar LED"></div>
+        <span style="font-size:.8rem;color:var(--dim)">Comando Serial</span>
+        <code style="font-family:'JetBrains Mono',monospace;font-size:.85rem;color:var(--pri)">B</code>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn pri" style="flex:1" onclick="act('LED_ON')">ON</button>
-        <button class="btn" style="flex:1" onclick="act('LED_OFF')">OFF</button>
+        <button class="btn pri" style="flex:1" onclick="act('B')">BEEP 200ms</button>
+        <button class="btn" style="flex:1" onclick="act('B'); setTimeout(()=>act('B'),400)">Doble BEEP</button>
       </div>
-    </div>
-
-    <div class="act-card">
-      <div class="act-card-head">
-        <span class="act-card-title">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16a4 4 0 0 1 8 0"/><path d="M12 16v4"/><path d="M5 8h14"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/></svg>
-          Bomba / Relay Riego (D7)
-        </span>
-        <span id="relayState" class="act-badge">OFF</span>
-      </div>
-      <span style="font-size:.8rem;color:var(--muted)">Activa si agua &gt;500 o manual</span>
-      <div class="act-control-row">
-        <span style="font-size:.8rem;color:var(--dim)">Interruptor</span>
-        <div id="swRelay" class="sw" onclick="toggle('relay')" title="Conmutar Relay"></div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn pri" style="flex:1" onclick="act('RELAY_ON')">Riego ON</button>
-        <button class="btn" style="flex:1" onclick="act('RELAY_OFF')">OFF</button>
-      </div>
-    </div>
-
-    <div class="act-card">
-      <div class="act-card-head">
-        <span class="act-card-title">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12a3 3 0 1 0 3-3"/><path d="M12 3a9 9 0 1 0 9 9"/></svg>
-          Ventilador PWM (D9)
-        </span>
-        <span id="fanState" class="act-badge">0/255</span>
-      </div>
-      <span style="font-size:.8rem;color:var(--muted)">Ternario Clase 2: temp&gt;30 → 255</span>
-      <div class="act-control-row">
-        <span style="font-size:.8rem;color:var(--dim)">Potencia PWM</span>
-        <input id="fanRange" type="range" min="0" max="255" value="0" class="act-slider" oninput="fan(this.value)">
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn pri" style="flex:1" onclick="act('FAN_AUTO')">AUTO</button>
-        <button class="btn" style="flex:1" onclick="act('FAN_OFF')">OFF</button>
-      </div>
+      <p style="font-size:.75rem;color:var(--dim);margin:0">En Monitor 9600 probá también: <code>R</code>=LM35 ahora, <code>D</code>=debug</p>
     </div>
   </div>
   <div id="log" style="margin-top:4px;background:rgba(10,15,26,0.85);border:1px solid var(--b);border-radius:10px;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--muted);max-height:90px;overflow-y:auto;display:none"></div>
 </div>
 
 <div style="background:rgba(255,255,255,0.04);border:1px solid var(--b);border-radius:12px;padding:14px;font-size:.85rem;color:var(--muted)">
-  <b>Arduino Clase 4 (.ino)</b> — Envía por Serial 9600: <code>temp,hum,luz,agua</code> (ej: <code>24.5,62,734,120</code>) compatible con Clase 3 (primeros dos valores) + <code>struct Sensor + leer_todos(&s)</code>. Comandos que entiende: <code>LED_ON/LED_OFF/RELAY_ON/RELAY_OFF/FAN_0..255/FAN_AUTO</code>.
+  <b>Arduino Clase 4 (.ino)</b> — Envía por Serial 9600: <code>temp,hum,luz,agua</code> (ej: <code>24.5,62,734,120</code>) compatible con Clase 3 (primeros dos valores) + <code>struct Sensor + leer_todos(&s)</code>. Comandos que entiende: <code>R</code>=leer LM35 ahora, <code>B</code>=beep buzzer, <code>D</code>=debug.
 </div>
 
 <footer style="padding: 16px 8px; text-align: center; border-top: 1px solid var(--b); color: var(--dim); font-size: 0.78rem; display: flex; flex-direction: column; gap: 8px;">
@@ -293,7 +256,7 @@
 <script>
 const $ = id => document.getElementById(id);
 let hist = []; const MAX=40;
-let actuadores={led:false,relay:false,fan:0};
+let actuadores={buzzer:false};
 function log(m){const el=$('log');el.style.display='block';const d=document.createElement('div');d.textContent='['+new Date().toLocaleTimeString()+'] '+m;el.appendChild(d);el.scrollTop=el.scrollHeight; while(el.children.length>6) el.removeChild(el.firstChild);}
 
 function clasificarLuz(v){
@@ -435,28 +398,11 @@ function updateUI(d){
   $('tTag').textContent = isNaN(t) ? '--' : (t > 30 ? 'ALERTA' : 'OK');
   $('hTag').textContent = isNaN(h) ? '--' : (h > 80 ? 'ALTA' : h < 30 ? 'SECO' : 'OK');
 
-  // actuadores sync desde backend
-  if(d.actuadores){
-    if(d.actuadores.led !== undefined){
-      actuadores.led = !!d.actuadores.led;
-      $('swLed').classList.toggle('on', actuadores.led);
-      $('ledState').textContent = actuadores.led ? 'ON' : 'OFF';
-      $('ledState').classList.toggle('active', actuadores.led);
-    }
-    if(d.actuadores.relay !== undefined){
-      actuadores.relay = !!d.actuadores.relay;
-      $('swRelay').classList.toggle('on', actuadores.relay);
-      $('relayState').textContent = actuadores.relay ? 'ON' : 'OFF';
-      $('relayState').classList.toggle('active', actuadores.relay);
-    }
-    if(d.actuadores.fan !== undefined){
-      const fVal = d.actuadores.fan;
-      $('fanState').textContent = fVal + (fVal === 'AUTO' ? '' : '/255');
-      $('fanState').classList.toggle('active', fVal !== 0 && fVal !== '0');
-      if(fVal !== 'AUTO' && document.activeElement !== $('fanRange')){
-        $('fanRange').value = fVal;
-      }
-    }
+  // buzzer estado (opcional, solo feedback visual)
+  if(d.actuadores && d.actuadores.buzzer !== undefined){
+    const b = !!d.actuadores.buzzer;
+    const el=$('buzzerState');
+    if(el){ el.textContent = b ? 'BEEP' : 'READY'; el.classList.toggle('active', b); setTimeout(()=>{ el.textContent='READY'; el.classList.remove('active');}, 600); }
   }
 
   // hist
@@ -842,6 +788,8 @@ function draw(){
 }
 async function act(cmd){
   log('→ '+cmd + (selectedNodePort ? ' ('+selectedNodePort+')' : ''));
+  const el=$('buzzerState');
+  if(el && cmd==='B'){ el.textContent='BEEP'; el.classList.add('active'); }
   try{
     let r=await fetch('/api/clase4/actuador',{
       method:'POST',
@@ -850,25 +798,10 @@ async function act(cmd){
     });
     let j=await r.json();
     log('← '+(j.result||j.estado||'ok'));
-    if(cmd==='LED_ON') {actuadores.led=true; $('swLed').classList.add('on'); $('ledState').textContent='ON'; $('ledState').classList.add('active');}
-    if(cmd==='LED_OFF') {actuadores.led=false; $('swLed').classList.remove('on'); $('ledState').textContent='OFF'; $('ledState').classList.remove('active');}
-    if(cmd==='RELAY_ON') {actuadores.relay=true; $('swRelay').classList.add('on'); $('relayState').textContent='ON'; $('relayState').classList.add('active');}
-    if(cmd==='RELAY_OFF') {actuadores.relay=false; $('swRelay').classList.remove('on'); $('relayState').textContent='OFF'; $('relayState').classList.remove('active');}
-    if(cmd.startsWith('FAN_')){
-      let v=cmd==='FAN_AUTO'?'AUTO':cmd.split('_')[1];
-      $('fanState').textContent=v+(v==='AUTO'?'':'/255');
-      if(v!=='AUTO') $('fanRange').value=v;
-      if(v==='0'||v==='OFF'){ $('fanState').classList.remove('active'); } else { $('fanState').classList.add('active'); }
-    }
   }catch(e){ log('Error de envío: '+(e && e.message ? e.message : e)); }
-  // fallback viejo: /api/actuador
   try{ await fetch('/api/actuador',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd, puerto: selectedNodePort})}); }catch(e){}
+  if(el) setTimeout(()=>{ el.textContent='READY'; el.classList.remove('active'); }, 700);
 }
-function toggle(who){
-  if(who==='led') act(actuadores.led?'LED_OFF':'LED_ON');
-  if(who==='relay') act(actuadores.relay?'RELAY_ON':'RELAY_OFF');
-}
-function fan(v){ act('FAN_'+v); }
 async function loop(){
   try{ const d=await fetchDatos(); updateUI(d); }catch(e){ updateUI({arduino_conectado:false}); }
 }
