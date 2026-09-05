@@ -95,10 +95,15 @@
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <div id="conn" class="badge"><span style="width:7px;height:7px;background:currentColor;border-radius:50%;box-shadow:0 0 8px currentColor"></span> <span id="connTxt">Conectando</span></div>
+    <a id="mongoBadge" href="/api/db/estado" target="_blank" class="badge" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;border-color:rgba(16,185,129,0.3);color:#10b981;background:rgba(16,185,129,0.08)" title="MongoDB Atlas: Persistencia cada 5m">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      <span id="mongoTxt">Atlas DB</span>
+    </a>
     <a class="nav" href="/">Inicio</a>
     <a class="nav" href="/clase3">Clase 3</a>
     <a class="nav active" href="/clase4">Clase 4</a>
     <a class="nav" href="/panel">Panel</a>
+    <a class="nav" href="/historico">Historial</a>
   </div>
 </header>
 
@@ -247,7 +252,13 @@
     <span>&middot;</span>
     <a href="/panel" style="color: var(--muted); text-decoration: none;">/panel (Red WiFi)</a>
     <span>&middot;</span>
+    <a href="/historico" style="color: #38bdf8; text-decoration: none; font-weight: 600;">/historico (Historial)</a>
+    <span>&middot;</span>
     <a href="/api/clase4/datos" style="color: var(--muted); text-decoration: none;">/api/clase4/datos (JSON)</a>
+    <span>&middot;</span>
+    <a href="/api/db/estado" target="_blank" style="color: #10b981; text-decoration: none;">/api/db/estado (Atlas)</a>
+    <span>&middot;</span>
+    <a href="/api/db/historico" target="_blank" style="color: var(--muted); text-decoration: none;">/api/db/historico</a>
   </div>
   <div>CEAER — Centro de Especialización en Asuntos Económicos Regionales &middot; Nodo IoT Pi Zero W v1</div>
 </footer>
@@ -391,6 +402,37 @@ function updateUI(d){
   else if(!isNaN(t) && t > 35){ estado = 'CRITICO'; desc = 'Golpe calor'; }
   else if(!isNaN(t) && t > 30){ estado = 'ALERTA'; desc = 'Calor'; }
   else if(!isNaN(luz) && clasificarLuz(luz).txt === 'NOCHE'){ estado = 'NOCHE'; desc = 'Modo nocturno'; }
+  
+  // Actualización del estado de MongoDB Atlas en cabecera
+  if(d && d.mongo){
+    const mb = $('mongoBadge');
+    const mt = $('mongoTxt');
+    if(mb && mt){
+      if(d.mongo.conectado){
+        mb.style.borderColor = 'rgba(16,185,129,0.4)';
+        mb.style.color = '#10b981';
+        mb.style.background = 'rgba(16,185,129,0.1)';
+        mt.textContent = `Atlas 5m (${d.mongo.total_guardados || 0})`;
+        mb.title = `MongoDB Atlas conectado (${d.mongo.db}.${d.mongo.coleccion}). Guardados: ${d.mongo.total_guardados}. Próximo en ${Math.round(d.mongo.intervalo_segundos/60)}m`;
+      } else if(d.mongo.habilitado){
+        mb.style.borderColor = 'rgba(234,179,8,0.4)';
+        mb.style.color = '#eab308';
+        mb.style.background = 'rgba(234,179,8,0.1)';
+        mt.textContent = 'Atlas (Conectando...)';
+        mb.title = d.mongo.ultimo_error || 'Conectando a MongoDB Atlas...';
+      } else {
+        mb.style.borderColor = 'rgba(148,163,184,0.2)';
+        mb.style.color = 'var(--dim)';
+        mb.style.background = 'rgba(255,255,255,0.02)';
+        mt.textContent = 'Atlas (Inactivo)';
+        mb.title = d.mongo.motivo_desactivado || 'MongoDB Atlas inactivo';
+      }
+    }
+  }
+
+  // resumen estado
+  const eg = $('estadoGral');
+  const ed = $('estadoDesc');
   $('estadoGral').textContent = estado;
   $('estadoDesc').textContent = desc;
 

@@ -19,6 +19,10 @@ sshpass -p "$PI_PASS" rsync -avz --progress -e "ssh -o StrictHostKeyChecking=no"
 echo "→ Verificando servidor"
 sshpass -p "$PI_PASS" ssh -o StrictHostKeyChecking=no "$PI_USER@$PI_HOST" bash <<'EOS'
   set -e
+  if ! python3 -c "import pymongo" >/dev/null 2>&1; then
+    echo "Instalando dependencias en la Pi (pymongo[srv])..."
+    pip3 install --break-system-packages "pymongo[srv]" 2>/dev/null || pip3 install "pymongo[srv]" 2>/dev/null || true
+  fi
   echo "Reiniciando servidor_datos.py en :8000"
   pkill -f servidor_datos.py || true
   sleep 1

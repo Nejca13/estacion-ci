@@ -6,6 +6,15 @@ try:
 except ImportError:
     serial = None
 
+try:
+    from mongo_manager import mongo_db
+except ImportError:
+    try:
+        from dashboard.mongo_manager import mongo_db
+    except ImportError:
+        mongo_db = None
+
+
 BAUD = 9600
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 REMOTE_URL = "https://nejca-iot.tail4284c3.ts.net"
@@ -207,6 +216,22 @@ class ArduinoWorker(threading.Thread):
                             if len(d["historial"]) > MAX_HIST:
                                 d["historial"].pop(0)
 
+                # Persistencia asíncrona en MongoDB Atlas (cada 5 minutos por nodo)
+                if mongo_db:
+                    try:
+                        mongo_db.registrar_lectura(
+                            nodo_id=self.nodo_id,
+                            alias=self.alias,
+                            puerto=self.puerto,
+                            temp=temp_val,
+                            hum=hum_val,
+                            luz=luz_val,
+                            agua=agua_val
+                        )
+                    except Exception:
+                        pass
+
+
         # Limpieza al desconectar
         with self.serial_lock:
             if self.ser:
@@ -331,7 +356,8 @@ def obtener_estado(params=None):
         "nodo_activo": dev.get("id"),
         "alias_activo": dev.get("alias"),
         "total_conectados": conectados,
-        "dispositivos": resumen_disp
+        "dispositivos": resumen_disp,
+        "mongo": mongo_db.obtener_estado() if mongo_db else {"habilitado": False, "conectado": False}
     }
     return resp
 
@@ -500,6 +526,8 @@ class Handler(BaseHTTPRequestHandler):
             self._html("dashboard.html")
         elif ruta == "/panel":
             self._html("panel.html")
+        elif ruta in ("/historico", "/historial", "/historico.html"):
+            self._html("historico.html")
         elif ruta == "/datos":
             self._json(obtener_estado(params))
         elif ruta == "/api/clase4/datos":
@@ -515,6 +543,21 @@ class Handler(BaseHTTPRequestHandler):
             self._json(escanear())
         elif ruta == "/api/redes_guardadas":
             self._json(redes_guardadas())
+        elif ruta == "/api/db/estado":
+            if mongo_db:
+                self._json(mongo_db.obtener_estado())
+            else:
+                self._json({"habilitado": False, "conectado": False, "error": "Módulo mongo_manager no disponible"}, 503)
+        elif ruta == "/api/db/historico":
+            if mongo_db:
+                lim = params.get("limit", params.get("page_size", [20]))[0]
+                page = params.get("page", [1])[0]
+                nodo = params.get("nodo", [None])[0] or params.get("puerto", [None])[0]
+                orden = params.get("orden", params.get("order", ["desc"]))[0]
+                sort_by = params.get("sort_by", params.get("sort", ["timestamp"]))[0]
+                self._json(mongo_db.obtener_historico(limit=lim, page=page, nodo=nodo, orden=orden, sort_by=sort_by))
+            else:
+                self._json({"ok": False, "error": "Módulo mongo_manager no disponible", "datos": []}, 503)
         else:
             self._json({"error": "no existe " + ruta}, 404)
 
@@ -602,6 +645,23 @@ class Handler(BaseHTTPRequestHandler):
             nombre = body.get("nombre", "")
             res = olvidar(nombre)
             self._json({"resultado": res})
+        elif ruta == "/api/db/forzar_guardado":
+            if not mongo_db:
+                self._json({"error": "mongo_manager no disponible"}, 503)
+                return
+            puerto_req = body.get("puerto")
+            _, dev = obtener_dispositivo_seleccionado({"puerto": [puerto_req]} if puerto_req else None)
+            ok = mongo_db.registrar_lectura(
+                nodo_id=dev.get("id"),
+                alias=dev.get("alias"),
+                puerto=dev.get("puerto"),
+                temp=dev.get("temp"),
+                hum=dev.get("hum"),
+                luz=dev.get("luz"),
+                agua=dev.get("agua"),
+                forzar=True
+            )
+            self._json({"ok": ok, "estado": mongo_db.obtener_estado()})
         else:
             self._json({"error": "no existe POST " + ruta}, 404)
 
