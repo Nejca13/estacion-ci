@@ -11,33 +11,100 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Lint (fail fast)
+        run: |
+          echo "→ py_compile servidor_datos.py"
+          python3 -m py_compile dashboard/servidor_datos.py
+          echo "→ py_compile mongo_manager.py"
+          python3 -m py_compile dashboard/mongo_manager.py
+          wc -l dashboard/*.html
+          if grep -P -q '[\x{1F300}-\x{1FAFF}]' dashboard/dashboard_clase4.html; then echo "ERROR: emojis encontrados en dashboard_clase4.html"; exit 1; fi
+          echo "✓ Lint OK"
       - name: Connect to Tailscale
         uses: tailscale/github-action@v2
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-      - name: Deploy via Tailscale (tailnet)
+      - name: Deploy via Tailscale + Funnel (con fallback)
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
           PI_TAILNET: "100.121.34.122"
+          PI_FUNNEL: "https://nejca-iot.tail4284c3.ts.net"
         run: |
-          echo "Desplegando a http://$PI_TAILNET:8000/api/deploy"
-          curl -s -X POST "http://$PI_TAILNET:8000/api/deploy" \
-            -H "Authorization: Bearer $DEPLOY_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"token\":\"$DEPLOY_TOKEN\"}" | tee /tmp/deploy.json
-          cat /tmp/deploy.json
-          grep -q "deploy iniciado" /tmp/deploy.json || exit 1
-          echo "Esperando auto-restart del servidor (~15s, Pi Zero ARM11 es lenta)..."
-          sleep 15
-          echo "Verificando..."
-          for i in 1 2 3 4 5 6 7 8; do sleep 4; curl -s -m 5 "http://$PI_TAILNET:8000/" | grep -q "CEAER" && echo "OK index" && break; echo "Intento $i/8"; done
-          curl -s -m 5 "http://$PI_TAILNET:8000/" | grep -q "CEAER" && echo "OK index final" || exit 1
-          curl -s -m 5 "http://$PI_TAILNET:8000/clase4" | grep -q "Clase 4" && echo "OK clase4" || exit 1
-          curl -s -m 5 "http://$PI_TAILNET:8000/historico" | grep -q "Historial" && echo "OK historico" || exit 1
-      - name: Lint
-        run: |
-          python3 -m py_compile dashboard/servidor_datos.py
-          python3 -m py_compile dashboard/mongo_manager.py
-          wc -l dashboard/*.html
-          if grep -P -q '[\x{1F300}-\x{1FAFF}]' dashboard/dashboard_clase4.html; then echo "ERROR emojis"; exit 1; fi
+          set -e
+          # Intenta deploy por tailnet primero, fallback a funnel público
+          DEPLOY_URL_TAILNET="http://$PI_TAILNET:8000/api/deploy"
+          DEPLOY_URL_FUNNEL="$PI_FUNNEL/api/deploy"
+          echo "Desplegando a $DEPLOY_URL_TAILNET (fallback $DEPLOY_URL_FUNNEL)"
+
+          deploy_ok=0
+          for URL in "$DEPLOY_URL_TAILNET" "$DEPLOY_URL_FUNNEL"; do
+            echo "→ POST $URL"
+            if curl -s -m 15 -X POST "$URL" \
+              -H "Authorization: Bearer $DEPLOY_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"token\":\"$DEPLOY_TOKEN\"}" | tee /tmp/deploy.json; then
+              cat /tmp/deploy.json
+              if grep -q "deploy iniciado" /tmp/deploy.json; then
+                echo "✓ Deploy iniciado via $URL"
+                deploy_ok=1
+                break
+              else
+                echo "WARN: respuesta sin 'deploy iniciado' en $URL, probando siguiente..."
+              fi
+            else
+              echo "WARN: curl falló a $URL"
+            fi
+          done
+          if [ "$deploy_ok" != "1" ]; then
+            echo "ERROR: ningún endpoint de deploy respondió correctamente"
+            cat /tmp/deploy.json || true
+            exit 1
+          fi
+
+          echo "Esperando auto-restart del servidor (~25s, Pi Zero ARM11 es muy lenta)..."
+          sleep 25
+
+          # Verificación robusta: prueba funnel (público) y tailnet directo
+          VERIFY_URLS=("$PI_FUNNEL" "http://$PI_TAILNET:8000")
+          check_url() {
+            local base="$1"
+            local path="$2"
+            local needle="$3"
+            local label="$4"
+            echo "→ Verificando $label en $base$path ..."
+            # Dump debug en fallo
+            body=$(curl -s -m 10 "$base$path" || true)
+            if echo "$body" | grep -q "$needle"; then
+              echo "  ✓ OK $label ($base$path contiene '$needle')"
+              return 0
+            else
+              echo "  ✗ FAIL $label - primeros 500 chars:"
+              echo "$body" | head -c 500; echo
+              echo "  curl verbose:"
+              curl -s -v -m 10 "$base$path" 2>&1 | head -n 30 || true
+              return 1
+            fi
+          }
+
+          echo "Verificando (12 intentos, 5s cada uno)..."
+          ok=0
+          for i in $(seq 1 12); do
+            echo "--- Intento $i/12 ---"
+            # Probar funnel primero (más estable), luego tailnet
+            for BASE in "${VERIFY_URLS[@]}"; do
+              if check_url "$BASE" "/" "CEAER" "index"; then ok=1; break; fi
+            done
+            if [ "$ok" = "1" ]; then break; fi
+            sleep 5
+          done
+          if [ "$ok" != "1" ]; then
+            echo "ERROR: / no respondió con CEAER tras 12 intentos"
+            exit 1
+          fi
+
+          # Verificación final estricta vía funnel (estable)
+          check_url "$PI_FUNNEL" "/" "CEAER" "index final" || exit 1
+          check_url "$PI_FUNNEL" "/clase4" "Clase 4" "clase4" || exit 1
+          check_url "$PI_FUNNEL" "/historico" "Historial" "historico" || exit 1
+          echo "✓ Todas las verificaciones pasaron"
 

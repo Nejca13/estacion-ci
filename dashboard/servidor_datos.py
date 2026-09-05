@@ -644,21 +644,38 @@ class Handler(BaseHTTPRequestHandler):
                 log.append("git fetch: " + (r.stdout.strip() or r.stderr.strip() or "ok"))
                 r = subprocess.run(["git", "-C", "/home/nico/estacion-ci", "reset", "--hard", "origin/main"], capture_output=True, text=True, timeout=20)
                 log.append("git reset: " + (r.stdout.strip() or r.stderr.strip()))
-                r2 = subprocess.run(["rsync", "-av", "/home/nico/estacion-ci/dashboard/", "/home/nico/dashboard/", "--exclude", ".git"], capture_output=True, text=True, timeout=20)
-                log.append("rsync: " + r2.stdout.strip()[:500])
-                # Auto-restart: proceso detached que mata el viejo y arranca el nuevo
+                r2 = subprocess.run(
+                    ["rsync", "-av",
+                     "--exclude", ".git",
+                     "--exclude", "__pycache__",
+                     "--exclude", "*.pyc",
+                     "--exclude", "*.pyo",
+                     "/home/nico/estacion-ci/dashboard/",
+                     "/home/nico/dashboard/"],
+                    capture_output=True, text=True, timeout=20)
+                log.append("rsync: " + r2.stdout.strip()[:800])
+                if r2.returncode != 0:
+                    log.append("rsync stderr: " + r2.stderr.strip()[:500])
+                # Auto-restart robusto para Pi Zero (ARM11 single-core, muy lenta)
+                # - sleep 3 da tiempo a que la respuesta HTTP se envíe completa
+                # - pkill con patrón [s] para no matar el propio comando pkill
+                # - fallback pkill -9 si queda colgado, luego setsid nohup
                 subprocess.Popen(
                     ["/bin/bash", "-c",
-                     "sleep 2; pkill -f servidor_datos.py; sleep 1; "
-                     "setsid python3 -u /home/nico/dashboard/servidor_datos.py "
-                     "> /tmp/c8000.log 2>&1 < /dev/null &"],
+                     "sleep 3; "
+                     "pkill -f '[s]ervidor_datos.py' || true; sleep 2; "
+                     "pkill -9 -f '[s]ervidor_datos.py' || true; sleep 1; "
+                     "rm -rf /home/nico/dashboard/__pycache__ 2>/dev/null || true; "
+                     "setsid /usr/bin/python3 -u /home/nico/dashboard/servidor_datos.py "
+                     "> /tmp/c8000.log 2>&1 < /dev/null & "
+                     "sleep 2; cat /tmp/c8000.log | head -n 20 || true"],
                     start_new_session=True,
                     stdin=subprocess.DEVNULL,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                     close_fds=True
                 )
-                log.append("auto-restart programado en ~3s")
+                log.append("auto-restart programado en ~4s (Pi Zero)")
             except Exception as e:
                 log.append("error: " + str(e))
             self._json({"result": "deploy iniciado", "log": log})
