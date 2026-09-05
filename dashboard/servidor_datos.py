@@ -484,7 +484,7 @@ def olvidar(nombre):
 
 class Handler(BaseHTTPRequestHandler):
     def _json(self, obj, code=200):
-        b = json.dumps(obj).encode()
+        b = json.dumps(obj, default=str).encode()
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
         self.send_header("Access-Control-Allow-Origin", "*")

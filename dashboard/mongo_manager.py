@@ -194,9 +194,12 @@ class MongoManager:
 
             # Intentar inserción
             try:
-                self.collection.insert_one(doc)
+                doc_insert = dict(doc)
+                self.collection.insert_one(doc_insert)
                 self.total_guardados += 1
-                self.ultimo_doc_guardado = doc
+                if "_id" in doc_insert:
+                    doc_insert["_id"] = str(doc_insert["_id"])
+                self.ultimo_doc_guardado = doc_insert
                 self.conectado = True
                 self.ultimo_error = None
             except Exception as e:
@@ -319,6 +322,12 @@ class MongoManager:
                     "proximo_guardado_en": max(0, round(self.intervalo - (ahora - ts), 1))
                 }
 
+        ultimo_doc = None
+        if self.ultimo_doc_guardado:
+            ultimo_doc = dict(self.ultimo_doc_guardado)
+            if "_id" in ultimo_doc:
+                ultimo_doc["_id"] = str(ultimo_doc["_id"])
+
         return {
             "habilitado": self.habilitado,
             "conectado": self.conectado,
@@ -328,7 +337,7 @@ class MongoManager:
             "intervalo_segundos": self.intervalo,
             "total_guardados": self.total_guardados,
             "cola_pendientes": self.cola.qsize(),
-            "ultimo_doc_guardado": self.ultimo_doc_guardado,
+            "ultimo_doc_guardado": ultimo_doc,
             "ultimo_error": self.ultimo_error,
             "dispositivos": dispositivos_info
         }

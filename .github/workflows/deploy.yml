@@ -27,14 +27,17 @@ jobs:
             -d "{\"token\":\"$DEPLOY_TOKEN\"}" | tee /tmp/deploy.json
           cat /tmp/deploy.json
           grep -q "deploy iniciado" /tmp/deploy.json || exit 1
-          echo "Esperando auto-restart del servidor (~8s)..."
-          sleep 8
+          echo "Esperando auto-restart del servidor (~15s, Pi Zero ARM11 es lenta)..."
+          sleep 15
           echo "Verificando..."
-          for i in 1 2 3 4 5; do sleep 3; curl -s "http://$PI_TAILNET:8000/" | grep -q "CEAER" && echo "OK index" && break; echo "Intento $i/5"; done
-          curl -s "http://$PI_TAILNET:8000/" | grep -q "CEAER" && echo "OK index final" || exit 1
-          curl -s "http://$PI_TAILNET:8000/clase4" | grep -q "Clase 4" && echo "OK clase4" || exit 1
+          for i in 1 2 3 4 5 6 7 8; do sleep 4; curl -s -m 5 "http://$PI_TAILNET:8000/" | grep -q "CEAER" && echo "OK index" && break; echo "Intento $i/8"; done
+          curl -s -m 5 "http://$PI_TAILNET:8000/" | grep -q "CEAER" && echo "OK index final" || exit 1
+          curl -s -m 5 "http://$PI_TAILNET:8000/clase4" | grep -q "Clase 4" && echo "OK clase4" || exit 1
+          curl -s -m 5 "http://$PI_TAILNET:8000/historico" | grep -q "Historial" && echo "OK historico" || exit 1
       - name: Lint
         run: |
           python3 -m py_compile dashboard/servidor_datos.py
+          python3 -m py_compile dashboard/mongo_manager.py
           wc -l dashboard/*.html
           if grep -P -q '[\x{1F300}-\x{1FAFF}]' dashboard/dashboard_clase4.html; then echo "ERROR emojis"; exit 1; fi
+
