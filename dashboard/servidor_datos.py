@@ -49,6 +49,7 @@ class ArduinoWorker(threading.Thread):
                 dispositivos[self.puerto] = {
                     "id": self.nodo_id,
                     "alias": self.alias,
+                    "nombre_custom": None,
                     "puerto": self.puerto,
                     "conectado": False,
                     "temp": None,
@@ -121,6 +122,14 @@ class ArduinoWorker(threading.Thread):
                 if self.puerto in dispositivos:
                     dispositivos[self.puerto]["conectado"] = True
             print(f"✓ Conectado {self.alias} en {self.puerto}")
+            # Solicitar nombre a la estación (comando N)
+            try:
+                time.sleep(0.5)
+                with self.serial_lock:
+                    if self.ser and self.ser.is_open:
+                        self.ser.write(b"N\n")
+            except Exception:
+                pass
         except Exception as e:
             print(f"Error abriendo {self.puerto}: {e}")
             with lock_estado:
@@ -141,6 +150,20 @@ class ArduinoWorker(threading.Thread):
 
             if not linea:
                 continue
+
+            # Auto-identificación de la estación via @NAME:
+            if linea.startswith("@NAME:"):
+                nombre = linea[6:].strip()
+                if nombre:
+                    with lock_estado:
+                        d = dispositivos.get(self.puerto)
+                        if d:
+                            d["nombre_custom"] = nombre
+                            d["alias"] = nombre
+                    self.alias = nombre
+                    print(f"\U0001F4E1 Estacion identificada: '{nombre}' en {self.puerto}")
+                continue
+
             if linea in ("ESTACION_METEO_CSV", "ERROR"):
                 if linea == "ERROR":
                     with lock_estado:
@@ -328,6 +351,7 @@ def obtener_estado(params=None):
             resumen_disp[p] = {
                 "id": d.get("id"),
                 "alias": d.get("alias"),
+                "nombre_custom": d.get("nombre_custom"),
                 "puerto": p,
                 "conectado": d.get("conectado", False),
                 "temp": d.get("temp"),
@@ -355,6 +379,7 @@ def obtener_estado(params=None):
         # Extensiones multidispositivo:
         "nodo_activo": dev.get("id"),
         "alias_activo": dev.get("alias"),
+        "nombre_custom": dev.get("nombre_custom"),
         "total_conectados": conectados,
         "dispositivos": resumen_disp,
         "mongo": mongo_db.obtener_estado() if mongo_db else {"habilitado": False, "conectado": False}
@@ -370,6 +395,7 @@ def listar_dispositivos():
                 {
                     "id": d.get("id"),
                     "alias": d.get("alias"),
+                    "nombre_custom": d.get("nombre_custom"),
                     "puerto": p,
                     "conectado": d.get("conectado", False),
                     "temp": d.get("temp"),

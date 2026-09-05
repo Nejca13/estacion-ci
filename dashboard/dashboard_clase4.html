@@ -317,9 +317,10 @@ function renderNodeSelector(d){
     const isSel = (p === selectedNodePort);
     const isConn = dev.conectado;
     const tempTxt = (dev.temp != null) ? `${Number(dev.temp).toFixed(1)}°C` : '--';
-    html += `<button class="node-chip ${isSel ? 'active' : ''} ${!isConn ? 'off' : ''}" onclick="selectNode('${p}')" title="${dev.alias || p}">
+    const nombreEstacion = dev.nombre_custom || dev.alias || p;
+    html += `<button class="node-chip ${isSel ? 'active' : ''} ${!isConn ? 'off' : ''}" onclick="selectNode('${p}')" title="${nombreEstacion} (${p})">
       <span class="node-dot" style="background:${isConn ? '#10b981' : '#f43f5e'}"></span>
-      <b>${dev.alias || p}</b>
+      <b>${nombreEstacion}</b>
       <span style="opacity:.8">${tempTxt}</span>
     </button>`;
   });
@@ -360,7 +361,9 @@ function updateUI(d){
   }
 
   $('conn').className='badge';
-  $('connTxt').textContent= d.puerto ? ('En línea (' + d.puerto.replace('/dev/','') + ')') : 'En línea';
+  const nombreEstacion = d.nombre_custom || d.alias_activo || (d.puerto ? d.puerto.replace('/dev/','') : 'Arduino');
+  const portSuffix = (d.puerto && !d.nombre_custom) ? ` (${d.puerto.replace('/dev/','')})` : '';
+  $('connTxt').textContent = `En línea · ${nombreEstacion}${portSuffix}`;
 
   const t = (d.temp !== null && d.temp !== undefined) ? parseFloat(d.temp) : NaN;
   const h = (d.hum !== null && d.hum !== undefined) ? parseFloat(d.hum) : NaN;

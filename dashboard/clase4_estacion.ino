@@ -2,7 +2,14 @@
 // Sensores: DHT11 D2, LM35 A0, LDR A1 (con 10k a GND), Agua A2
 // Actuador: Buzzer pasivo D6 (GND)
 // Envia por Serial 9600: temp,hum,luz,agua  (CSV4 compatible Clase 3)
-// Comandos: R=leer LM35 ahora, B=beep test, D=debug
+// Comandos: R=leer LM35 ahora, B=beep test, D=debug, N=nombre estacion
+
+// ======= CONFIGURACIÓN DE LA ESTACIÓN =======
+// Cambiar este nombre en cada Arduino antes de flashear.
+// El servidor lo reconoce automáticamente via @NAME:
+const char STATION_NAME[] = "Estacion P1";
+// =============================================
+
 #include <DHT.h>
 #define DHT_PIN 2
 #define DHT_TYPE DHT11
@@ -126,6 +133,9 @@ void setup() {
   pinMode(BUZZER_PIN, OUTPUT);
   init_sensores(sensores);
   Serial.println("ESTACION_METEO_CSV");
+  // Auto-identificación: enviar nombre de la estación
+  Serial.print("@NAME:");
+  Serial.println(STATION_NAME);
   tone(BUZZER_PIN, 1200);
   delay(120);
   noTone(BUZZER_PIN);
@@ -147,6 +157,10 @@ void loop() {
       delay(200);
       noTone(BUZZER_PIN);
       Serial.println("BEEP OK");
+    } else if (c == 'N') {
+      // Responder con el nombre de la estación
+      Serial.print("@NAME:");
+      Serial.println(STATION_NAME);
     } else if (c == 'D') {
       for (int i = 0; i < 5; i++) {
         Serial.print(i);
