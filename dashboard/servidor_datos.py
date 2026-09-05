@@ -657,25 +657,23 @@ class Handler(BaseHTTPRequestHandler):
                 if r2.returncode != 0:
                     log.append("rsync stderr: " + r2.stderr.strip()[:500])
                 # Auto-restart robusto para Pi Zero (ARM11 single-core, muy lenta)
-                # - sleep 3 da tiempo a que la respuesta HTTP se envíe completa
-                # - pkill con patrón [s] para no matar el propio comando pkill
-                # - fallback pkill -9 si queda colgado, luego setsid nohup
+                # Mantener comando simple y probado: pkill + setsid python3 (PATH)
+                # sleep 3 asegura que el JSON de respuesta se envíe antes de matar el proceso
                 subprocess.Popen(
                     ["/bin/bash", "-c",
-                     "sleep 3; "
-                     "pkill -f '[s]ervidor_datos.py' || true; sleep 2; "
-                     "pkill -9 -f '[s]ervidor_datos.py' || true; sleep 1; "
+                     "sleep 3; pkill -f servidor_datos.py || true; sleep 2; "
                      "rm -rf /home/nico/dashboard/__pycache__ 2>/dev/null || true; "
-                     "setsid /usr/bin/python3 -u /home/nico/dashboard/servidor_datos.py "
+                     "setsid python3 -u /home/nico/dashboard/servidor_datos.py "
                      "> /tmp/c8000.log 2>&1 < /dev/null & "
-                     "sleep 2; cat /tmp/c8000.log | head -n 20 || true"],
+                     "sleep 3; ps aux | grep -v grep | grep servidor_datos || echo 'WARN no proceso'; "
+                     "cat /tmp/c8000.log | head -n 30 || true"],
                     start_new_session=True,
                     stdin=subprocess.DEVNULL,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                     close_fds=True
                 )
-                log.append("auto-restart programado en ~4s (Pi Zero)")
+                log.append("auto-restart programado en ~5s (Pi Zero)")
             except Exception as e:
                 log.append("error: " + str(e))
             self._json({"result": "deploy iniciado", "log": log})

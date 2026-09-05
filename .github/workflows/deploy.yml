@@ -24,14 +24,18 @@ jobs:
         uses: tailscale/github-action@v2
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-      - name: Deploy via Tailscale + Funnel (con fallback)
+      - name: Deploy via Tailscale + Funnel (con fallback SSH)
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
           PI_TAILNET: "100.121.34.122"
           PI_FUNNEL: "https://nejca-iot.tail4284c3.ts.net"
+          PI_USER: "nico"
+          PI_PASS: ${{ secrets.PI_SSH_PASS }}
         run: |
           set -e
-          # Intenta deploy por tailnet primero, fallback a funnel público
+          # Fallback password si no hay secret configurado (scripts/deploy.sh default)
+          if [ -z "$PI_PASS" ]; then PI_PASS="011539"; fi
+
           DEPLOY_URL_TAILNET="http://$PI_TAILNET:8000/api/deploy"
           DEPLOY_URL_FUNNEL="$PI_FUNNEL/api/deploy"
           echo "Desplegando a $DEPLOY_URL_TAILNET (fallback $DEPLOY_URL_FUNNEL)"
@@ -43,68 +47,111 @@ jobs:
               -H "Authorization: Bearer $DEPLOY_TOKEN" \
               -H "Content-Type: application/json" \
               -d "{\"token\":\"$DEPLOY_TOKEN\"}" | tee /tmp/deploy.json; then
-              cat /tmp/deploy.json
+              cat /tmp/deploy.json || true
               if grep -q "deploy iniciado" /tmp/deploy.json; then
                 echo "✓ Deploy iniciado via $URL"
                 deploy_ok=1
                 break
               else
-                echo "WARN: respuesta sin 'deploy iniciado' en $URL, probando siguiente..."
+                echo "WARN: respuesta sin 'deploy iniciado' en $URL"
+                cat /tmp/deploy.json || true
               fi
             else
               echo "WARN: curl falló a $URL"
             fi
           done
+
           if [ "$deploy_ok" != "1" ]; then
-            echo "ERROR: ningún endpoint de deploy respondió correctamente"
-            cat /tmp/deploy.json || true
-            exit 1
+            echo "WARN: API deploy no respondió, intentando recuperación via SSH (rsync directo)..."
+          else
+            echo "Esperando auto-restart del servidor (~25s, Pi Zero ARM11 es muy lenta)..."
+            sleep 25
           fi
 
-          echo "Esperando auto-restart del servidor (~25s, Pi Zero ARM11 es muy lenta)..."
-          sleep 25
-
-          # Verificación robusta: prueba funnel (público) y tailnet directo
+          # Función verificación
           VERIFY_URLS=("$PI_FUNNEL" "http://$PI_TAILNET:8000")
           check_url() {
             local base="$1"
             local path="$2"
             local needle="$3"
             local label="$4"
-            echo "→ Verificando $label en $base$path ..."
-            # Dump debug en fallo
             body=$(curl -s -m 10 "$base$path" || true)
             if echo "$body" | grep -q "$needle"; then
-              echo "  ✓ OK $label ($base$path contiene '$needle')"
+              echo "  ✓ OK $label ($base$path)"
               return 0
             else
-              echo "  ✗ FAIL $label - primeros 500 chars:"
-              echo "$body" | head -c 500; echo
-              echo "  curl verbose:"
-              curl -s -v -m 10 "$base$path" 2>&1 | head -n 30 || true
+              echo "  ✗ FAIL $label ($base$path) - body:"; echo "$body" | head -c 500; echo
               return 1
             fi
           }
 
-          echo "Verificando (12 intentos, 5s cada uno)..."
-          ok=0
-          for i in $(seq 1 12); do
-            echo "--- Intento $i/12 ---"
-            # Probar funnel primero (más estable), luego tailnet
-            for BASE in "${VERIFY_URLS[@]}"; do
-              if check_url "$BASE" "/" "CEAER" "index"; then ok=1; break; fi
+          verify_all() {
+            echo "Verificando (12 intentos, 5s)..."
+            ok=0
+            for i in $(seq 1 12); do
+              echo "--- Intento $i/12 ---"
+              for BASE in "${VERIFY_URLS[@]}"; do
+                if check_url "$BASE" "/" "CEAER" "index"; then ok=1; break; fi
+              done
+              if [ "$ok" = "1" ]; then break; fi
+              sleep 5
             done
-            if [ "$ok" = "1" ]; then break; fi
-            sleep 5
-          done
-          if [ "$ok" != "1" ]; then
-            echo "ERROR: / no respondió con CEAER tras 12 intentos"
-            exit 1
+            if [ "$ok" != "1" ]; then return 1; fi
+            check_url "$PI_FUNNEL" "/" "CEAER" "index final" || return 1
+            check_url "$PI_FUNNEL" "/clase4" "Clase 4" "clase4" || return 1
+            check_url "$PI_FUNNEL" "/historico" "Historial" "historico" || return 1
+            return 0
+          }
+
+          # Intento verificación tras API deploy
+          if [ "$deploy_ok" = "1" ] && verify_all; then
+            echo "✓ Verificación vía API OK"
+            exit 0
           fi
 
-          # Verificación final estricta vía funnel (estable)
-          check_url "$PI_FUNNEL" "/" "CEAER" "index final" || exit 1
-          check_url "$PI_FUNNEL" "/clase4" "Clase 4" "clase4" || exit 1
-          check_url "$PI_FUNNEL" "/historico" "Historial" "historico" || exit 1
-          echo "✓ Todas las verificaciones pasaron"
+          echo "→ Verificación falló o API no disponible, recuperando via SSH (tailnet)..."
+          # Instalar sshpass/rsync si falta
+          if ! command -v sshpass >/dev/null 2>&1; then
+            echo "Instalando sshpass..."
+            sudo apt-get update -qq && sudo apt-get install -y -qq sshpass rsync >/dev/null
+          fi
+
+          echo "→ Rsync dashboard/ → $PI_USER@$PI_TAILNET:/home/nico/dashboard (via SSH)"
+          sshpass -p "$PI_PASS" rsync -avz --progress \
+            --exclude "__pycache__" --exclude "*.pyc" --exclude "*.pyo" --exclude ".git" \
+            -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10" \
+            ./dashboard/ "$PI_USER@$PI_TAILNET:/home/nico/dashboard/" || {
+              echo "ERROR: rsync SSH falló"; exit 1
+            }
+
+          echo "→ Reiniciando servidor via SSH"
+          sshpass -p "$PI_PASS" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 "$PI_USER@$PI_TAILNET" bash <<'EOSSH'
+            set -e
+            echo "  git fetch/reset por si rsync incompleto..."
+            git -C /home/nico/estacion-ci fetch 2>&1 | head -n 5 || true
+            git -C /home/nico/estacion-ci reset --hard origin/main 2>&1 | head -n 5 || true
+            rsync -av --exclude __pycache__ --exclude "*.pyc" --exclude ".git" /home/nico/estacion-ci/dashboard/ /home/nico/dashboard/ 2>&1 | tail -n 10 || true
+            pkill -f servidor_datos.py || true
+            sleep 2
+            rm -rf /home/nico/dashboard/__pycache__
+            setsid python3 -u /home/nico/dashboard/servidor_datos.py > /tmp/c8000.log 2>&1 < /dev/null &
+            sleep 4
+            echo "  ps:"; ps aux | grep "[s]ervidor_datos" || echo "WARN no proceso"
+            echo "  log:"; cat /tmp/c8000.log | head -n 40 || true
+            echo "  curl local:"; curl -s -m 5 http://127.0.0.1:8000/ | grep -o '<title>.*</title>' | head -1 || echo "FAIL local 8000"
+            ss -tlnp | grep 8000 || echo "WARN :8000 no escuchando"
+          EOSSH
+
+          echo "Esperando 10s tras reinicio SSH..."
+          sleep 10
+
+          if verify_all; then
+            echo "✓ Recuperación SSH exitosa"
+            exit 0
+          else
+            echo "ERROR: ni API ni SSH lograron levantar el servidor"
+            echo "--- Diagnóstico SSH log ---"
+            sshpass -p "$PI_PASS" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 "$PI_USER@$PI_TAILNET" "cat /tmp/c8000.log; echo ---ps---; ps aux | grep servidor; ss -tlnp | grep 8000 || true" || true
+            exit 1
+          fi
 
