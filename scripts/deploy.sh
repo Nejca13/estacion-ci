@@ -40,14 +40,14 @@ sshpass -p "$PI_PASS" ssh -o StrictHostKeyChecking=no "$PI_USER@$PI_HOST" bash <
   echo "Dashboard (127.0.0.1:8000):"
   for p in "/" "/clase4" "/historico"; do
     echo -n "  $p: "
-    curl -s -m 5 "http://127.0.0.1:8000$p" | grep -o '<title>.*</title>' | head -1 || echo "FAIL"
+    curl -s --compressed -m 5 "http://127.0.0.1:8000$p" | grep -o '<title>.*</title>' | head -1 || echo "FAIL"
   done
 EOS
 # Verificación externa vía Funnel (público, no requiere LAN)
 echo "→ Verificando Funnel https://nejca-iot.tail4284c3.ts.net"
 for p in "/" "/clase4" "/historico"; do
   echo -n "  $p: "
-  curl -s -m 10 "https://nejca-iot.tail4284c3.ts.net$p" | grep -o '<title>.*</title>' | head -1 || echo "FAIL (Funnel no responde, puede tardar 10s)"
+  curl -s --compressed -m 10 "https://nejca-iot.tail4284c3.ts.net$p" | grep -o '<title>.*</title>' | head -1 || echo "FAIL (Funnel no responde, puede tardar 10s)"
 done
 
 echo "✓ Deploy OK. Local: http://$PI_HOST:8000/ (/clase4, /historico) | Remoto: https://nejca-iot.tail4284c3.ts.net"

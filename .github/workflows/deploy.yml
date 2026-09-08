@@ -75,7 +75,7 @@ jobs:
             local path="$2"
             local needle="$3"
             local label="$4"
-            body=$(curl -s -m 10 "$base$path" || true)
+            body=$(curl -s --compressed -m 20 "$base$path" || true)
             if echo "$body" | grep -q "$needle"; then
               echo "  ✓ OK $label ($base$path)"
               return 0
@@ -131,14 +131,14 @@ jobs:
             git -C /home/nico/estacion-ci fetch 2>&1 | head -n 5 || true
             git -C /home/nico/estacion-ci reset --hard origin/main 2>&1 | head -n 5 || true
             rsync -av --exclude __pycache__ --exclude "*.pyc" --exclude ".git" /home/nico/estacion-ci/dashboard/ /home/nico/dashboard/ 2>&1 | tail -n 10 || true
-            pkill -f servidor_datos.py || true
+            pkill -f '[s]ervidor_datos.py' || true
             sleep 2
             rm -rf /home/nico/dashboard/__pycache__
             setsid python3 -u /home/nico/dashboard/servidor_datos.py > /tmp/c8000.log 2>&1 < /dev/null &
             sleep 4
             echo "  ps:"; ps aux | grep "[s]ervidor_datos" || echo "WARN no proceso"
             echo "  log:"; cat /tmp/c8000.log | head -n 40 || true
-            echo "  curl local:"; curl -s -m 5 http://127.0.0.1:8000/ | grep -o '<title>.*</title>' | head -1 || echo "FAIL local 8000"
+            echo "  curl local:"; curl -s --compressed -m 5 http://127.0.0.1:8000/ | grep -o '<title>.*</title>' | head -1 || echo "FAIL local 8000"
             ss -tlnp | grep 8000 || echo "WARN :8000 no escuchando"
           EOSSH
 

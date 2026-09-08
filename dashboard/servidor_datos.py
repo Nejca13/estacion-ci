@@ -722,11 +722,11 @@ class Handler(BaseHTTPRequestHandler):
                 # sleep 3 asegura que el JSON de respuesta se envíe antes de matar el proceso
                 subprocess.Popen(
                     ["/bin/bash", "-c",
-                     "sleep 3; pkill -f servidor_datos.py || true; sleep 2; "
+                     "sleep 3; pkill -f '[s]ervidor_datos.py' || true; sleep 2; "
                      "rm -rf /home/nico/dashboard/__pycache__ 2>/dev/null || true; "
                      "setsid python3 -u /home/nico/dashboard/servidor_datos.py "
                      "> /tmp/c8000.log 2>&1 < /dev/null & "
-                     "sleep 3; ps aux | grep -v grep | grep servidor_datos || echo 'WARN no proceso'; "
+                     "sleep 3; ps aux | grep '[s]ervidor_datos' || echo 'WARN no proceso'; "
                      "cat /tmp/c8000.log | head -n 30 || true"],
                     start_new_session=True,
                     stdin=subprocess.DEVNULL,
