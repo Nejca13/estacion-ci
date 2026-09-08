@@ -1,6 +1,6 @@
-import os, re, threading, time, json, subprocess, glob
+import os, re, threading, time, json, subprocess, glob, gzip
 from urllib.parse import urlparse, parse_qs
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 try:
     import serial
 except ImportError:
@@ -23,6 +23,18 @@ MAX_HIST = 40
 lock_estado = threading.Lock()
 dispositivos = {}  # { puerto: { ...datos... } }
 workers = {}       # { puerto: ArduinoWorker }
+
+# Rendimiento: umbral gzip, TTL de caches y HTMLs precomprimibles
+GZIP_MIN = 512
+CACHE_ESTADO_TTL = 5.0
+CACHE_HISTORICO_TTL = 10.0
+HTML_PRECOMP = ["index_clases.html", "dashboard.html", "dashboard_clase4.html",
+                "panel.html", "historico.html", "moodle_presentacion.html"]
+
+_cache_estado_v = {"ts": 0.0, "val": None}
+_cache_estado_lock = threading.Lock()
+_cache_historico_v = {}
+_cache_historico_lock = threading.Lock()
 
 def detectar_todos_los_puertos():
     puertos = []
@@ -466,10 +478,23 @@ def estado_red():
     info["cloudflare_url"] = REMOTE_URL
     return info
 
+def estado_red_cacheado():
+    """/api/estado lanza 6 subprocesos (nmcli es lento en Pi Zero): servir cache 5s."""
+    now = time.time()
+    with _cache_estado_lock:
+        v = _cache_estado_v["val"]
+        if v is not None and now - _cache_estado_v["ts"] < CACHE_ESTADO_TTL:
+            return v
+    v = estado_red()
+    with _cache_estado_lock:
+        _cache_estado_v["ts"] = time.time()
+        _cache_estado_v["val"] = v
+    return v
+
 def escanear():
     try:
         correr(["sudo", "nmcli", "dev", "wifi", "rescan"])
-        time.sleep(4)
+        time.sleep(2)
     except: pass
     salida = correr(["nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY", "dev", "wifi", "list"])
     redes = []
@@ -509,33 +534,56 @@ def olvidar(nombre):
     return correr(["sudo", "nmcli", "con", "delete", nombre])
 
 class Handler(BaseHTTPRequestHandler):
-    def _json(self, obj, code=200):
-        b = json.dumps(obj, default=str).encode()
+    protocol_version = "HTTP/1.1"   # keep-alive: evita handshake TCP en cada poll
+    timeout = 180                    # cierra sockets idle para no acumular threads
+
+    def _gzip_pref(self):
+        return "gzip" in self.headers.get("Accept-Encoding", "").lower()
+
+    def _responder(self, data, ctype, code=200, cache_control=None):
+        """Respuesta HTTP/1.1 con gzip (nivel 1) para texto/json > GZIP_MIN."""
+        if self._gzip_pref() and len(data) > GZIP_MIN:
+            data = gzip.compress(data, compresslevel=1)
+            enc = "gzip"
+        else:
+            enc = None
         self.send_response(code)
-        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(data)))
+        if enc:
+            self.send_header("Content-Encoding", enc)
+        self.send_header("Vary", "Accept-Encoding")
+        if cache_control:
+            self.send_header("Cache-Control", cache_control)
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Content-Length", str(len(b)))
         self.end_headers()
-        self.wfile.write(b)
+        self.wfile.write(data)
+
+    def _json(self, obj, code=200):
+        self._responder(json.dumps(obj, default=str).encode(), "application/json", code)
 
     def _html(self, nombre):
         posibles = [os.path.join(BASE_DIR, nombre), os.path.join("/home/nico/dashboard", nombre)]
-        html = None
+        ruta_v = None
         for ruta in posibles:
             if os.path.exists(ruta):
-                try:
-                    with open(ruta, "rb") as f:
-                        html = f.read()
-                        break
-                except: pass
-        if html is None:
+                ruta_v = ruta
+                break
+        if ruta_v is None:
             self._json({"error": "no encontrado " + nombre}, 404)
             return
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(html)))
-        self.end_headers()
-        self.wfile.write(html)
+        ruta_gz = ruta_v + ".gz"
+        if self._gzip_pref() and os.path.exists(ruta_gz):
+            try:
+                if os.path.getmtime(ruta_gz) >= os.path.getmtime(ruta_v):
+                    with open(ruta_gz, "rb") as f:
+                        self._responder(f.read(), "text/html; charset=utf-8", cache_control="public, max-age=300")
+                        return
+            except OSError:
+                pass
+        with open(ruta_v, "rb") as f:
+            html = f.read()
+        self._responder(html, "text/html; charset=utf-8", cache_control="public, max-age=300")
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -564,7 +612,7 @@ class Handler(BaseHTTPRequestHandler):
             puerto_activo, dev = obtener_dispositivo_seleccionado(params)
             self._json({"actuadores": dev.get("actuadores", {})})
         elif ruta == "/api/estado":
-            self._json(estado_red())
+            self._json(estado_red_cacheado())
         elif ruta == "/api/escanear":
             self._json(escanear())
         elif ruta == "/api/redes_guardadas":
@@ -581,7 +629,20 @@ class Handler(BaseHTTPRequestHandler):
                 nodo = params.get("nodo", [None])[0] or params.get("puerto", [None])[0]
                 orden = params.get("orden", params.get("order", ["desc"]))[0]
                 sort_by = params.get("sort_by", params.get("sort", ["timestamp"]))[0]
-                self._json(mongo_db.obtener_historico(limit=lim, page=page, nodo=nodo, orden=orden, sort_by=sort_by))
+                key = (lim, page, nodo, orden, sort_by)
+                now = time.time()
+                with _cache_historico_lock:
+                    hit = _cache_historico_v.get(key)
+                    if hit and now - hit[0] < CACHE_HISTORICO_TTL:
+                        self._json(hit[1])
+                        return
+                val = mongo_db.obtener_historico(limit=lim, page=page, nodo=nodo, orden=orden, sort_by=sort_by)
+                with _cache_historico_lock:
+                    _cache_historico_v[key] = (time.time(), val)
+                    if len(_cache_historico_v) > 32:
+                        for k in list(_cache_historico_v)[:8]:
+                            _cache_historico_v.pop(k, None)
+                self._json(val)
             else:
                 self._json({"ok": False, "error": "Módulo mongo_manager no disponible", "datos": []}, 503)
         else:
@@ -710,10 +771,23 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 if __name__ == "__main__":
+    # Precomprimir HTML estáticos (gzip nivel 1, suficiente para ARM11)
+    for _nombre in HTML_PRECOMP:
+        _ruta = os.path.join(BASE_DIR, _nombre)
+        _ruta_gz = _ruta + ".gz"
+        try:
+            if os.path.exists(_ruta) and (not os.path.exists(_ruta_gz) or os.path.getmtime(_ruta_gz) < os.path.getmtime(_ruta)):
+                with open(_ruta, "rb") as _f:
+                    _data = _f.read()
+                with open(_ruta_gz, "wb") as _f:
+                    _f.write(gzip.compress(_data, compresslevel=1))
+        except OSError:
+            pass
+
     t = threading.Thread(target=gestor_puertos, daemon=True)
     t.start()
     print("Servidor unificado multi-Arduino listo en puerto 8000 (PID %d)" % os.getpid())
     try:
-        HTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
+        ThreadingHTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
     except KeyboardInterrupt:
         print("\nDetenido")
