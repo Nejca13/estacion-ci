@@ -540,9 +540,11 @@ class Handler(BaseHTTPRequestHandler):
     def _gzip_pref(self):
         return "gzip" in self.headers.get("Accept-Encoding", "").lower()
 
-    def _responder(self, data, ctype, code=200, cache_control=None):
-        """Respuesta HTTP/1.1 con gzip (nivel 1) para texto/json > GZIP_MIN."""
-        if self._gzip_pref() and len(data) > GZIP_MIN:
+    def _responder(self, data, ctype, code=200, cache_control=None, pre_comprimido=False):
+        """Respuesta HTTP/1.1. Si pre_comprimido, data ya es gzip (no re-comprimir)."""
+        if pre_comprimido:
+            enc = "gzip"
+        elif self._gzip_pref() and len(data) > GZIP_MIN:
             data = gzip.compress(data, compresslevel=1)
             enc = "gzip"
         else:
@@ -577,7 +579,7 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 if os.path.getmtime(ruta_gz) >= os.path.getmtime(ruta_v):
                     with open(ruta_gz, "rb") as f:
-                        self._responder(f.read(), "text/html; charset=utf-8", cache_control="public, max-age=300")
+                        self._responder(f.read(), "text/html; charset=utf-8", cache_control="public, max-age=300", pre_comprimido=True)
                         return
             except OSError:
                 pass
